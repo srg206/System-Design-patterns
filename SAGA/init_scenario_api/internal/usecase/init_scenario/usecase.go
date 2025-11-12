@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"init_scenario_api/internal/infastructure/repository/queries"
+	"init_scenario_api/internal/models/convert"
 	"init_scenario_api/internal/models/dto"
 	"init_scenario_api/internal/models/entity"
 	"init_scenario_api/pkg/logger"
@@ -34,7 +35,7 @@ func (uc *UseCase) InitScenario(ctx context.Context, input dto.InitScenarioReque
 	var result *dto.InitScenarioResponse
 	err := uc.repo.WithinTransaction(ctx, func(txCtx context.Context) error {
 
-		createdScenario, err := uc.repo.CreateScenario(txCtx, queries.CreateScenarioParams{
+		createdScenarioDB, err := uc.repo.CreateScenario(txCtx, queries.CreateScenarioParams{
 			Uuid:     uuidToUUIDV7(uuid.New()),
 			CameraID: input.CameraID,
 		})
@@ -43,16 +44,18 @@ func (uc *UseCase) InitScenario(ctx context.Context, input dto.InitScenarioReque
 			return fmt.Errorf("create scenario: %w", err)
 		}
 
-		payload := entity.NewInitScenarioPayload(createdScenario.Uuid, input.CameraID)
+		scenarioEntity := convert.ScenarioFromDB(createdScenarioDB)
+
+		payload := entity.NewInitScenarioPayload(createdScenarioDB.Uuid, input.CameraID)
 		payloadBytes, err := json.Marshal(payload)
 		if err != nil {
 			log.Error("failed to marshal payload", zap.Error(err))
 			return fmt.Errorf("marshal payload: %w", err)
 		}
 
-		createdOutbox, err := uc.repo.CreateOutboxScenario(txCtx, queries.CreateOutboxScenarioParams{
+		createdOutboxDB, err := uc.repo.CreateOutboxScenario(txCtx, queries.CreateOutboxScenarioParams{
 			OutboxUuid:   uuidToUUIDV7(uuid.New()),
-			ScenarioUuid: createdScenario.Uuid,
+			ScenarioUuid: createdScenarioDB.Uuid,
 			Payload:      payloadBytes,
 		})
 
@@ -61,13 +64,12 @@ func (uc *UseCase) InitScenario(ctx context.Context, input dto.InitScenarioReque
 			return fmt.Errorf("create outbox scenario: %w", err)
 		}
 
-		log.Info("scenario created", zap.String("scenario_uuid", createdScenario.Uuid.String()))
-		log.Info("outbox scenario created", zap.String("outbox_uuid", createdOutbox.OutboxUuid.String()))
+		outboxEntity := convert.OutboxScenarioFromDB(createdOutboxDB)
 
-		result = &dto.InitScenarioResponse{
-			ScenarioUUID: createdScenario.Uuid.String(),
-			Status:       *createdScenario.Status,
-		}
+		log.Info("scenario created", zap.String("scenario_uuid", scenarioEntity.UUID.String()))
+		log.Info("outbox scenario created", zap.String("outbox_uuid", outboxEntity.OutboxUUID.String()))
+
+		result = convert.ScenarioToDTO(scenarioEntity)
 
 		return nil
 	})
