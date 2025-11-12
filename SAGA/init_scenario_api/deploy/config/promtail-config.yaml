@@ -1,0 +1,77 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+
+
+scrape_configs:
+  # Сбор логов из Docker контейнеров
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+        filters:
+          - name: label
+            values: ["logging=promtail"]
+    relabel_configs:
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.*)'
+        target_label: 'container'
+      - source_labels: ['__meta_docker_container_log_stream']
+        target_label: 'stream'
+      - source_labels: ['__meta_docker_container_label_service']
+        target_label: 'service'
+    pipeline_stages:
+      # Объединяем мультистрочные логи (stack traces)
+      # Если строка начинается с { - это новая JSON запись
+      # Если нет - это продолжение предыдущей (stacktrace)
+      - multiline:
+          firstline: '^\{.*'
+          max_wait_time: 3s
+      - json:
+          expressions:
+            level: level
+            msg: msg
+            request_id: request_id
+            method: method
+            path: path
+            duration: duration
+            timestamp: ts
+            stacktrace: stacktrace
+      - labels:
+          level:
+          request_id:
+          method:
+          path:
+          service:
+      - timestamp:
+          source: timestamp
+          format: RFC3339Nano
+      - output:
+          source: msg
+
+  # Сбор логов из файлов
+  - job_name: api-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: api
+          service: purchase-api
+          __path__: /var/log/api/*.log
+
+  - job_name: producer-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: producer
+          service: purchase-producer
+          __path__: /var/log/producer/*.log
+

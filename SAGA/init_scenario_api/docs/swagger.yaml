@@ -1,0 +1,74 @@
+basePath: /api/v1
+definitions:
+  dto.InitScenarioRequest:
+    properties:
+      camera_id:
+        type: integer
+    required:
+    - camera_id
+    type: object
+  dto.InitScenarioResponse:
+    properties:
+      scenario_uuid:
+        type: string
+      status:
+        type: string
+    type: object
+  response.ErrorResponse:
+    properties:
+      error:
+        type: string
+      message:
+        type: string
+    type: object
+host: localhost:3000
+info:
+  contact: {}
+  description: API для управления сценариями с использованием паттерна SAGA
+  title: Init Scenario API
+  version: "1.0"
+paths:
+  /health:
+    get:
+      description: Возвращает статус OK если сервис работает
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Проверка здоровья сервиса
+      tags:
+      - health
+  /scenario/init:
+    post:
+      consumes:
+      - application/json
+      description: Создает новый сценарий и отправляет событие в Kafka
+      parameters:
+      - description: Данные для создания сценария
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.InitScenarioRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.InitScenarioResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Инициализировать сценарий
+      tags:
+      - scenario
+swagger: "2.0"
