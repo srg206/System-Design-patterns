@@ -21,10 +21,9 @@ definitions:
       message:
         type: string
     type: object
-host: localhost:3000
 info:
   contact: {}
-  description: API для управления сценариями с использованием паттерна SAGA
+  description: API для управления сценариями
   title: Init Scenario API
   version: "1.0"
 paths:

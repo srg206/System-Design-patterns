@@ -24,8 +24,7 @@ import (
 
 // @title           Init Scenario API
 // @version         1.0
-// @description     API для управления сценариями с использованием паттерна SAGA
-// @host            localhost:3000
+// @description     API для управления сценариями
 // @BasePath        /api/v1
 func main() {
 	os.Exit(run())
