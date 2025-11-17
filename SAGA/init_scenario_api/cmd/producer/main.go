@@ -1,68 +1,85 @@
 package main
 
-// import (
-// 	"context"
-// 	"log"
-// 	"os"
-// 	"time"
+import (
+	"context"
+	"log"
+	"os"
+	"time"
 
-// 	"init_scenario_api/internal/application"
-// 	"init_scenario_api/pkg/common"
+	"init_scenario_api/internal/application"
+	"init_scenario_api/internal/infastructure/kafka"
+	kafkaModels "init_scenario_api/internal/models/kafka"
+	"init_scenario_api/internal/usecase/outbox_scenario_processor"
+	"init_scenario_api/pkg/common"
 
-// 	"go.uber.org/zap"
-// )
+	"go.uber.org/zap"
+)
 
-// func main() {
-// 	os.Exit(run())
-// }
+func main() {
+	os.Exit(run())
+}
 
-// func run() int {
-// 	app, err := application.NewApp()
-// 	if err != nil {
-// 		log.Fatalf("failed to initialize application: %v", err)
-// 		return common.FailExitCode
-// 	}
+func run() int {
+	app, err := application.NewApp()
+	if err != nil {
+		log.Fatalf("failed to initialize application: %w", err)
+		return common.FailExitCode
+	}
 
-// 	app.Logger.Info("producer service starting")
+	app.Logger.Info("producer service starting")
 
-// 	// Создаем контекст для управления жизненным циклом продюсера
-// 	ctx, cancel := context.WithCancel(context.Background())
-// 	defer cancel()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-// 	// Добавляем отмену контекста в closer
-// 	app.Closer.Add(func() error {
-// 		app.Logger.Info("cancelling producer context...")
-// 		cancel()
-// 		return nil
-// 	})
+	app.Closer.Add(func() error {
+		app.Logger.Info("cancelling producer context...")
+		cancel()
+		return nil
+	})
+	outboxScenarioUsecase := outbox_scenario_processor.NewUseCase(app.PostgresRepo, app.KafkaProducer)
 
-// 	// Запускаем основную логику продюсера в горутине
-// 	go runProducer(ctx, app.Logger)
+	prepapeKafka(ctx, app.Logger, app.Config.Kafka.Brokers)
 
-// 	// Ожидаем сигналов для graceful shutdown
-// 	app.Closer.Wait()
+	go runProducer(ctx, app.Logger, outboxScenarioUsecase)
 
-// 	app.Logger.Info("producer service stopped")
-// 	return common.SuccessExitCode
-// }
+	app.Closer.Wait()
 
-// func runProducer(ctx context.Context, lg *zap.Logger) {
-// 	ticker := time.NewTicker(10 * time.Second)
-// 	defer ticker.Stop()
+	app.Logger.Info("producer service stopped")
+	return common.SuccessExitCode
+}
 
-// 	lg.Info("producer worker started")
+func runProducer(ctx context.Context, lg *zap.Logger, outboxScenarioUsecase *outbox_scenario_processor.UseCase) {
+	ticker := time.NewTicker(3 * time.Second)
+	defer ticker.Stop()
 
-// 	for {
-// 		select {
-// 		case <-ctx.Done():
-// 			lg.Info("producer worker stopping...")
-// 			return
-// 		case <-ticker.C:
-// 			lg.Info("producer processing tick",
-// 				zap.Time("timestamp", time.Now()),
-// 				zap.String("status", "processing"),
-// 			)
-// 			// Здесь будет логика обработки сообщений
-// 		}
-// 	}
-// }
+	lg.Info("producer worker started")
+
+	for {
+		select {
+		case <-ctx.Done():
+			lg.Info("producer worker stopping...")
+			return
+		case <-ticker.C:
+			lg.Info("producer processing tick",
+				zap.Time("timestamp", time.Now()),
+				zap.String("status", "processing"),
+			)
+			outboxScenarioUsecase.ProcessScenarioOutboxMessages(ctx, kafkaModels.OutboxScenarioTopic, 100)
+			lg.Info("producer processed tick",
+				zap.Time("timestamp", time.Now()),
+				zap.String("status", "processed"),
+			)
+		}
+	}
+}
+
+func prepapeKafka(ctx context.Context, lg *zap.Logger, brokers []string) {
+
+	err := kafka.EnsureTopic(ctx, brokers, kafkaModels.OutboxScenarioTopic)
+	if err != nil {
+		lg.Error("failed to ensure topic exists", zap.Error(err))
+		return
+	}
+
+	lg.Info("kafka topic prepared", zap.String("topic", kafkaModels.OutboxScenarioTopic))
+}

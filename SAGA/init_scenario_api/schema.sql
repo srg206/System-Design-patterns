@@ -23,7 +23,8 @@ CREATE TABLE IF NOT EXISTS outbox_scenario (
     payload JSONB NOT NULL,
     state TEXT DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP
+    updated_at TIMESTAMP,
+    locked_until TIMESTAMP DEFAULT NULL
 );
 
 COMMENT ON TABLE outbox_scenario IS 'Outbox pattern table for reliable message publishing in SAGA';
@@ -32,3 +33,4 @@ COMMENT ON COLUMN outbox_scenario.payload IS 'JSON data of the message payload';
 COMMENT ON COLUMN outbox_scenario.state IS 'State of the message (pending, sent, failed)';
 COMMENT ON COLUMN outbox_scenario.created_at IS 'Timestamp when the message was created';
 COMMENT ON COLUMN outbox_scenario.updated_at IS 'Timestamp when the message was last updated';
+COMMENT ON COLUMN outbox_scenario.locked_until IS 'Timestamp until which the outbox message is locked from being processed';
