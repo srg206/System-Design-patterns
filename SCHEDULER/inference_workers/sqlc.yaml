@@ -1,0 +1,32 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "queries/scenario_queries.sql"
+    schema: "schema.sql"
+    gen:
+      go:
+        package: "scenario"
+        out: "internal/infastructure/repository/queries/scenario"
+        sql_package: "pgx/v5"
+        emit_json_tags: true
+        emit_prepared_queries: false
+        emit_interface: true
+        emit_exact_table_names: false
+        emit_empty_slices: true
+        emit_pointers_for_null_types: true
+
+  - engine: "postgresql"
+    queries: "queries/outbox_queries.sql"
+    schema: "schema.sql"
+    gen:
+      go:
+        package: "outbox"
+        out: "internal/infastructure/repository/queries/outbox"
+        sql_package: "pgx/v5"
+        emit_json_tags: true
+        emit_prepared_queries: false
+        emit_interface: true
+        emit_exact_table_names: false
+        emit_empty_slices: true
+        emit_pointers_for_null_types: true
+

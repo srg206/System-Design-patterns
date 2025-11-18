@@ -64,7 +64,7 @@ func runProducer(ctx context.Context, lg *zap.Logger, outboxScenarioUsecase *out
 				zap.Time("timestamp", time.Now()),
 				zap.String("status", "processing"),
 			)
-			outboxScenarioUsecase.ProcessScenarioOutboxMessages(ctx, kafkaModels.OutboxScenarioTopic, 100)
+			outboxScenarioUsecase.ProcessScenarioOutboxMessages(ctx, kafkaModels.OutboxScenarioTopic, 35)
 			lg.Info("producer processed tick",
 				zap.Time("timestamp", time.Now()),
 				zap.String("status", "processed"),
@@ -75,7 +75,7 @@ func runProducer(ctx context.Context, lg *zap.Logger, outboxScenarioUsecase *out
 
 func prepapeKafka(ctx context.Context, lg *zap.Logger, brokers []string) {
 
-	err := kafka.EnsureTopic(ctx, brokers, kafkaModels.OutboxScenarioTopic)
+	err := kafka.EnsureTopic(ctx, brokers, kafkaModels.OutboxScenarioTopic, 3, 3)
 	if err != nil {
 		lg.Error("failed to ensure topic exists", zap.Error(err))
 		return

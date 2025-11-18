@@ -48,7 +48,7 @@ COMMENT ON COLUMN scenario.updated_at IS 'Timestamp when the scenario was last u
 -- +goose Down
 -- +goose StatementBegin
 
-DROP TABLE IF EXISTS scenario;
 DROP TABLE IF EXISTS outbox_scenario;
+DROP TABLE IF EXISTS scenario;
 
 -- +goose StatementEnd
