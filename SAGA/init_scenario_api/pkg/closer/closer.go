@@ -83,10 +83,6 @@ func (c *Closer) Wait() {
 	}
 }
 
-func (c *Closer) Done() <-chan struct{} {
-	return c.done
-}
-
 func (c *Closer) IsShutdown() bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()

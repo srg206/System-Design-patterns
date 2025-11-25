@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"inference_scheduler/internal/config"
+	"runner/internal/config"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )

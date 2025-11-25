@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package runner.v1;
+
+option go_package = "runner/proto/server/runner/v1;runnerpb";
+
+message StartWorkerRequest {
+  string camera_id = 1;
+  string url = 2;
+}
+
+message StartWorkerResponse {
+  bool success = 1;
+  string error = 2;
+}
+
+message RemoveWorkerRequest {
+  string camera_id = 1;
+}
+
+message RemoveWorkerResponse {
+  bool success = 1;
+  string error = 2;
+}
+
+service RunnerService {
+  rpc StartWorker(StartWorkerRequest) returns (StartWorkerResponse);
+  rpc RemoveWorker(RemoveWorkerRequest) returns (RemoveWorkerResponse);
+}
+

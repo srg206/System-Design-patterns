@@ -3,12 +3,12 @@ package application
 import (
 	"context"
 	"fmt"
-	"inference_scheduler/internal/config"
-	"inference_scheduler/internal/infrastructure/kafka"
-	"inference_scheduler/internal/infrastructure/repository"
-	"inference_scheduler/pkg/closer"
-	"inference_scheduler/pkg/database"
-	"inference_scheduler/pkg/logger"
+	"runner/internal/config"
+	"runner/internal/infrastructure/kafka"
+	"runner/internal/infrastructure/repository"
+	"runner/pkg/closer"
+	"runner/pkg/database"
+	"runner/pkg/logger"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"

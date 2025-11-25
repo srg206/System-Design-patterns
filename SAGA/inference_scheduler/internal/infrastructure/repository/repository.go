@@ -45,7 +45,6 @@ func extractTx(ctx context.Context) pgx.Tx {
 	return nil
 }
 
-// getInboxStartScenarioQueries returns inbox_start_scenario queries with transaction if exists in context
 func (r *Repository) getInboxStartScenarioQueries(ctx context.Context) inbox_start_scenario.Querier {
 	tx := extractTx(ctx)
 	if tx != nil {
@@ -54,11 +53,9 @@ func (r *Repository) getInboxStartScenarioQueries(ctx context.Context) inbox_sta
 	return r.inboxStartScenarioQueries
 }
 
-// CreateInboxStartScenario creates a new inbox_start_scenario record
 func (r *Repository) CreateInboxStartScenario(ctx context.Context, arg inbox_start_scenario.CreateInboxStartScenarioParams) (inbox_start_scenario.InboxStartScenario, error) {
 	result, err := r.getInboxStartScenarioQueries(ctx).CreateInboxStartScenario(ctx, arg)
 	if err != nil {
-		// Проверяем, является ли ошибка нарушением уникального ключа (duplicate key)
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == pgErrCodeUniqueViolation {
 			return result, modelerror.ErrDuplicateKey
@@ -70,27 +67,23 @@ func (r *Repository) CreateInboxStartScenario(ctx context.Context, arg inbox_sta
 
 // WithinTransaction executes a function within a database transaction
 func (r *Repository) WithinTransaction(ctx context.Context, tFunc func(ctx context.Context) error) error {
-	// If already in transaction, just execute the function
 	tx := extractTx(ctx)
 	if tx != nil {
 		return tFunc(ctx)
 	}
 
-	// Start new transaction
 	tx, err := r.dbPool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)
 	}
 
-	// Handle panic and rollback
 	defer func() {
 		if p := recover(); p != nil {
 			_ = tx.Rollback(ctx)
-			panic(p) // re-throw panic after rollback
+			panic(p)
 		}
 	}()
 
-	// Execute function with transaction in context
 	err = tFunc(injectTx(ctx, tx))
 	if err != nil {
 		// Rollback on error
@@ -100,7 +93,6 @@ func (r *Repository) WithinTransaction(ctx context.Context, tFunc func(ctx conte
 		return err
 	}
 
-	// Commit transaction
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("commit transaction: %w", err)
 	}
@@ -108,7 +100,6 @@ func (r *Repository) WithinTransaction(ctx context.Context, tFunc func(ctx conte
 	return nil
 }
 
-// GetDBPool returns the database connection pool
 func (r *Repository) GetDBPool() *pgxpool.Pool {
 	return r.dbPool
 }

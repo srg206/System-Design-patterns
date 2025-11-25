@@ -60,7 +60,6 @@ func NewApp() (App, error) {
 		return nil
 	})
 
-	// Инициализация Kafka producer
 	kafkaConfig := kafka.DefaultConfig(cfg.Producer.KafkaBrokers...)
 	kafkaProducer, err := kafka.NewKafkaProducer(kafkaConfig, log)
 	if err != nil {

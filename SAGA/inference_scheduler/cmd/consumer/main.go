@@ -30,7 +30,6 @@ func main() {
 func run() int {
 	ctx := context.Background()
 
-	// Инициализация логгера
 	log, err := logger.InitLogger()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to init logger: %v\n", err)
@@ -38,17 +37,14 @@ func run() int {
 	}
 	defer log.Sync()
 
-	// Загрузка конфигурации
 	cfg, err := config.Load()
 	if err != nil {
 		log.Error("failed to load config", zap.Error(err))
 		return 1
 	}
 
-	// Создание closer
 	cls := closer.New(10 * time.Second)
 
-	// Подключение к БД
 	dbPool, err := database.NewPool(ctx, cfg.Database, cfg.Pool)
 	if err != nil {
 		log.Error("failed to create db pool", zap.Error(err))
@@ -60,10 +56,8 @@ func run() int {
 		return nil
 	})
 
-	// Создание репозитория
 	repo := repository.NewRepository(dbPool)
 
-	// Создание Kafka consumer
 	kafkaCfg := kafka.DefaultConfig(cfg.Consumer.KafkaBrokers...)
 	kafkaCfg.ConsumerGroup = cfg.Consumer.KafkaConsumerGroup
 
@@ -82,18 +76,15 @@ func run() int {
 		return consumer.Close()
 	})
 
-	// Запуск обработки сообщений в горутине
 	go func() {
 		for {
 			time.Sleep(time.Millisecond * 500)
 
-			// Проверка на shutdown
 			if cls.IsShutdown() {
 				log.Info("shutdown signal received, stopping message processing")
 				break
 			}
 			log.Info("message processing")
-			// Чтение сообщения из Kafka
 			msg, err := consumer.ReadMessage(ctx)
 			if err != nil {
 				log.Error("failed to read message", zap.Error(err))
@@ -102,7 +93,6 @@ func run() int {
 			}
 			log.Info("message read successfully")
 
-			// Парсинг сообщения
 			var payload struct {
 				CameraID     int32  `json:"camera_id"`
 				ScenarioUUID string `json:"scenario_uuid"`
@@ -113,7 +103,6 @@ func run() int {
 				continue
 			}
 
-			// Читаем outbox_uuid из headers
 			outboxUUIDBytes, ok := msg.Headers["outbox_uuid"]
 			if !ok {
 				log.Error("outbox_uuid header not found")
@@ -121,7 +110,6 @@ func run() int {
 			}
 			outboxUUIDStr := string(outboxUUIDBytes)
 
-			// Debug: логируем распарсенный payload
 			log.Debug("parsed message payload",
 				zap.String("outbox_uuid", outboxUUIDStr),
 				zap.Int32("camera_id", payload.CameraID),
@@ -129,7 +117,6 @@ func run() int {
 				zap.String("raw_message", string(msg.Value)),
 			)
 
-			// Сохранение в БД
 			outboxUUID := pgtype.UUID{}
 			if err := outboxUUID.Scan(outboxUUIDStr); err != nil {
 				log.Error("failed to parse outbox_uuid",
@@ -150,17 +137,13 @@ func run() int {
 				ScenarioUuid: scenarioUUID,
 			})
 			if err != nil {
-				// Проверяем, является ли это ошибкой дублирования ключа
 				if errors.Is(err, modelerror.ErrDuplicateKey) {
-					// Это нормальная ситуация при повторной обработке сообщения (идемпотентность)
 					log.Warn("message already processed (duplicate key), skipping",
 						zap.String("outbox_uuid", outboxUUIDStr),
 						zap.Int32("camera_id", payload.CameraID),
 						zap.String("scenario_uuid", payload.ScenarioUUID),
 					)
-					// Продолжаем выполнение для commit'а сообщения
 				} else {
-					// Это действительно ошибка - не делаем commit
 					log.Error("failed to save message to db", zap.Error(err))
 					continue
 				}
@@ -168,7 +151,6 @@ func run() int {
 				log.Info("message saved to db successfully")
 			}
 
-			// Commit сообщения в Kafka после успешного сохранения в БД
 			if err := consumer.CommitMessages(ctx, msg); err != nil {
 				log.Error("failed to commit message", zap.Error(err))
 				continue
@@ -184,7 +166,6 @@ func run() int {
 
 	log.Info("consumer started successfully")
 
-	// Ожидание сигнала завершения
 	cls.Wait()
 
 	return 0
