@@ -39,6 +39,7 @@ func (uc *UseCase) ProcessScenarioOutboxMessages(ctx context.Context, topic stri
 
 	var outboxRecords []outbox.OutboxScenario
 
+	// Получаем записи из outbox и блокируем их на время (1 минуту)
 	err := uc.repo.WithinTransaction(ctx, func(txCtx context.Context) error {
 		records, err := uc.repo.GetPendingOutboxScenarios(txCtx, batchSize)
 		if err != nil {
@@ -99,20 +100,17 @@ func (uc *UseCase) ProcessScenarioOutboxMessages(ctx context.Context, topic stri
 		uuids[i] = record.OutboxUuid
 	}
 
-	// Обновляем статусы outbox и scenario в транзакции
+	// Помечаем outbox записи как sent и снимаем блокировку
 	err = uc.repo.WithinTransaction(ctx, func(txCtx context.Context) error {
-		// Помечаем outbox записи как sent и снимаем блокировку
 		if err := uc.repo.MarkOutboxScenariosAsSentBatch(txCtx, uuids); err != nil {
 			return fmt.Errorf("mark outbox as sent: %w", err)
 		}
 
-		// Собираем UUID для scenario
 		scenarioUUIDs := make([]pgtype.UUID, len(outboxRecords))
 		for i, record := range outboxRecords {
 			scenarioUUIDs[i] = record.ScenarioUuid
 		}
 
-		// Обновляем статусы всех scenario батчем
 		status := entity.StatusInStartupProcessing
 		if err := uc.repo.UpdateScenarioStatusBatch(txCtx, scenario.UpdateScenarioStatusBatchParams{
 			Column1: scenarioUUIDs,

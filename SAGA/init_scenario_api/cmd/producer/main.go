@@ -64,7 +64,7 @@ func runProducer(ctx context.Context, lg *zap.Logger, outboxScenarioUsecase *out
 				zap.Time("timestamp", time.Now()),
 				zap.String("status", "processing"),
 			)
-			outboxScenarioUsecase.ProcessScenarioOutboxMessages(ctx, kafkaModels.OutboxScenarioTopic, 35)
+			outboxScenarioUsecase.ProcessScenarioOutboxMessages(ctx, kafkaModels.OutboxScenarioTopic, 1000)
 			lg.Info("producer processed tick",
 				zap.Time("timestamp", time.Now()),
 				zap.String("status", "processed"),

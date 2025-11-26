@@ -31,6 +31,7 @@ func (uc *UseCase) InitScenario(ctx context.Context, input dto.InitScenarioReque
 
 	log.Info("starting purchase",
 		zap.Int32("camera_id", input.CameraID),
+		zap.String("url", input.URL),
 	)
 
 	var result *dto.InitScenarioResponse
@@ -39,6 +40,7 @@ func (uc *UseCase) InitScenario(ctx context.Context, input dto.InitScenarioReque
 		createdScenarioDB, err := uc.repo.CreateScenario(txCtx, scenario.CreateScenarioParams{
 			Uuid:     uuidToUUIDV7(uuid.New()),
 			CameraID: input.CameraID,
+			Url:      input.URL,
 		})
 		if err != nil {
 			log.Error("failed to create scenario", zap.Error(err))
@@ -47,7 +49,7 @@ func (uc *UseCase) InitScenario(ctx context.Context, input dto.InitScenarioReque
 
 		scenarioEntity := convert.ScenarioFromDB(createdScenarioDB)
 
-		payload := entity.NewInitScenarioPayload(createdScenarioDB.Uuid, input.CameraID)
+		payload := entity.NewInitScenarioPayload(createdScenarioDB.Uuid, input.CameraID, input.URL)
 		payloadBytes, err := json.Marshal(payload)
 		if err != nil {
 			log.Error("failed to marshal payload", zap.Error(err))

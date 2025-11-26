@@ -39,7 +39,6 @@ func extractTx(ctx context.Context) pgx.Tx {
 	return nil
 }
 
-// getScenarioQueries returns scenario queries with transaction if exists in context
 func (r *Repository) getScenarioQueries(ctx context.Context) scenario.Querier {
 	tx := extractTx(ctx)
 	if tx != nil {
@@ -48,7 +47,6 @@ func (r *Repository) getScenarioQueries(ctx context.Context) scenario.Querier {
 	return r.scenarioQueries
 }
 
-// getOutboxQueries returns outbox queries with transaction if exists in context
 func (r *Repository) getOutboxQueries(ctx context.Context) outbox.Querier {
 	tx := extractTx(ctx)
 	if tx != nil {
@@ -57,59 +55,47 @@ func (r *Repository) getOutboxQueries(ctx context.Context) outbox.Querier {
 	return r.outboxQueries
 }
 
-// CreateScenario creates a new scenario record
 func (r *Repository) CreateScenario(ctx context.Context, arg scenario.CreateScenarioParams) (scenario.Scenario, error) {
 	return r.getScenarioQueries(ctx).CreateScenario(ctx, arg)
 }
 
-// UpdateScenarioStatusByUUID updates scenario status by UUID
 func (r *Repository) UpdateScenarioStatusByUUID(ctx context.Context, arg scenario.UpdateScenarioStatusByUUIDParams) error {
 	return r.getScenarioQueries(ctx).UpdateScenarioStatusByUUID(ctx, arg)
 }
 
-// UpdateScenarioStatusBatch updates scenario status for multiple UUIDs
 func (r *Repository) UpdateScenarioStatusBatch(ctx context.Context, arg scenario.UpdateScenarioStatusBatchParams) error {
 	return r.getScenarioQueries(ctx).UpdateScenarioStatusBatch(ctx, arg)
 }
 
-// UpdateScenarioPredictByUUID updates scenario predict_id by UUID
 func (r *Repository) UpdateScenarioPredictByUUID(ctx context.Context, arg scenario.UpdateScenarioPredictByUUIDParams) error {
 	return r.getScenarioQueries(ctx).UpdateScenarioPredictByUUID(ctx, arg)
 }
 
-// CreateOutboxScenario creates a new outbox scenario record
 func (r *Repository) CreateOutboxScenario(ctx context.Context, arg outbox.CreateOutboxScenarioParams) (outbox.OutboxScenario, error) {
 	return r.getOutboxQueries(ctx).CreateOutboxScenario(ctx, arg)
 }
 
-// UpdateOutboxScenarioState updates outbox scenario state by scenario UUID
 func (r *Repository) UpdateOutboxScenarioState(ctx context.Context, arg outbox.UpdateOutboxScenarioStateParams) error {
 	return r.getOutboxQueries(ctx).UpdateOutboxScenarioState(ctx, arg)
 }
 
-// LockOutboxScenario locks outbox scenario until specified time
 func (r *Repository) LockOutboxScenario(ctx context.Context, arg outbox.LockOutboxScenarioParams) error {
 	return r.getOutboxQueries(ctx).LockOutboxScenario(ctx, arg)
 }
 
-// GetPendingOutboxScenarios retrieves pending outbox records with row-level lock
 func (r *Repository) GetPendingOutboxScenarios(ctx context.Context, limit int32) ([]outbox.OutboxScenario, error) {
 	return r.getOutboxQueries(ctx).GetPendingOutboxScenarios(ctx, limit)
 }
 
-// LockOutboxScenariosBatch locks multiple outbox scenarios for 1 minute
 func (r *Repository) LockOutboxScenariosBatch(ctx context.Context, outboxUUIDs []pgtype.UUID) error {
 	return r.getOutboxQueries(ctx).LockOutboxScenariosBatch(ctx, outboxUUIDs)
 }
 
-// MarkOutboxScenariosAsSentBatch marks multiple outbox scenarios as sent and unlocks them
 func (r *Repository) MarkOutboxScenariosAsSentBatch(ctx context.Context, outboxUUIDs []pgtype.UUID) error {
 	return r.getOutboxQueries(ctx).MarkOutboxScenariosAsSentBatch(ctx, outboxUUIDs)
 }
 
-// WithinTransaction executes a function within a database transaction
 func (r *Repository) WithinTransaction(ctx context.Context, tFunc func(ctx context.Context) error) error {
-	// If already in transaction, just execute the function
 	tx := extractTx(ctx)
 	if tx != nil {
 		return tFunc(ctx)
@@ -125,21 +111,18 @@ func (r *Repository) WithinTransaction(ctx context.Context, tFunc func(ctx conte
 	defer func() {
 		if p := recover(); p != nil {
 			_ = tx.Rollback(ctx)
-			panic(p) // re-throw panic after rollback
+			panic(p)
 		}
 	}()
 
-	// Execute function with transaction in context
 	err = tFunc(injectTx(ctx, tx))
 	if err != nil {
-		// Rollback on error
 		if rbErr := tx.Rollback(ctx); rbErr != nil {
 			return fmt.Errorf("rollback transaction: %v (original error: %w)", rbErr, err)
 		}
 		return err
 	}
 
-	// Commit transaction
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("commit transaction: %w", err)
 	}
@@ -147,7 +130,6 @@ func (r *Repository) WithinTransaction(ctx context.Context, tFunc func(ctx conte
 	return nil
 }
 
-// GetDBPool returns the database connection pool
 func (r *Repository) GetDBPool() *pgxpool.Pool {
 	return r.dbPool
 }

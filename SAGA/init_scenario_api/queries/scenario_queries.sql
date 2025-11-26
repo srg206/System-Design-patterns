@@ -1,9 +1,10 @@
 -- name: CreateScenario :one
 INSERT INTO scenario (
     uuid,
-    camera_id
+    camera_id,
+    url
 ) VALUES (
-    $1, $2
+    $1, $2, $3
 ) RETURNING *;
 
 -- name: UpdateScenarioStatusByUUID :exec
