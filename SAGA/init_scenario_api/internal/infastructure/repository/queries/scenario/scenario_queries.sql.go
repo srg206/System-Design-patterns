@@ -14,23 +14,26 @@ import (
 const createScenario = `-- name: CreateScenario :one
 INSERT INTO scenario (
     uuid,
-    camera_id
+    camera_id,
+    url
 ) VALUES (
-    $1, $2
-) RETURNING uuid, camera_id, predict_id, status, created_at, updated_at
+    $1, $2, $3
+) RETURNING uuid, camera_id, url, predict_id, status, created_at, updated_at
 `
 
 type CreateScenarioParams struct {
 	Uuid     pgtype.UUID `json:"uuid"`
 	CameraID int32       `json:"camera_id"`
+	Url      string      `json:"url"`
 }
 
 func (q *Queries) CreateScenario(ctx context.Context, arg CreateScenarioParams) (Scenario, error) {
-	row := q.db.QueryRow(ctx, createScenario, arg.Uuid, arg.CameraID)
+	row := q.db.QueryRow(ctx, createScenario, arg.Uuid, arg.CameraID, arg.Url)
 	var i Scenario
 	err := row.Scan(
 		&i.Uuid,
 		&i.CameraID,
+		&i.Url,
 		&i.PredictID,
 		&i.Status,
 		&i.CreatedAt,

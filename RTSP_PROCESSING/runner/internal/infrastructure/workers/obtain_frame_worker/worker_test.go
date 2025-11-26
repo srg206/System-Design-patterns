@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"runner/internal/env"
 	"runner/internal/infrastructure/inference_service"
 	"runner/internal/infrastructure/s3"
 
@@ -16,13 +17,13 @@ import (
 
 // Проверяет получение и вычленение кадров из RTSP потока + рисует bounding boxes на кадрах.
 func TestRTSPStreamGrabFrameWorker(t *testing.T) {
+	cfg := env.LoadEnv()
 
 	frameChan := make(chan *gocv.Mat, 10)
 
-	inferenceServiceAddr := "localhost:50051"
 	svc, err := inference_service.New(inference_service.Config{
-		Address:            inferenceServiceAddr,
-		Timeout:            10 * time.Second,
+		Address:            cfg.Inference.Address,
+		Timeout:            cfg.Inference.Timeout,
 		MaxRetries:         3,
 		RetryDelay:         1 * time.Second,
 		CircuitBreakerName: "inference_service",
@@ -119,13 +120,18 @@ func TestRTSPStreamParsing(t *testing.T) {
 
 // Проверяет загрузку и скачивание по подписанной ссылке кадра из S3.
 func TestS3UploadAndDownloadFrame(t *testing.T) {
-	//TODO: move to OS.Getenv
+	cfg := env.LoadEnv()
+
 	s3Client, err := s3.NewClient(s3.Config{
-		Endpoint:    "https://storage.yandexcloud.net",
-		Bucket:      "detected-frames",
-		AccessKeyID: "***REMOVED***",
-		SecretKey:   "***REMOVED***",
+		Endpoint:    cfg.S3.Endpoint,
+		Bucket:      cfg.S3.Bucket,
+		AccessKeyID: cfg.S3.AccessKey,
+		SecretKey:   cfg.S3.SecretKey,
 	})
+	fmt.Println("cfg.S3.Endpoint", cfg.S3.Endpoint)
+	fmt.Println("cfg.S3.Bucket", cfg.S3.Bucket)
+	fmt.Println("cfg.S3.AccessKey", cfg.S3.AccessKey)
+	fmt.Println("cfg.S3.SecretKey", cfg.S3.SecretKey)
 	if err != nil {
 		t.Skipf("failed to create S3 client: %v", err)
 	}

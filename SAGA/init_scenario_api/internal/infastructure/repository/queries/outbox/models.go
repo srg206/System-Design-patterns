@@ -31,6 +31,8 @@ type Scenario struct {
 	Uuid pgtype.UUID `json:"uuid"`
 	// ID of the camera being used in the scenario
 	CameraID int32 `json:"camera_id"`
+	// URL to connect to camera
+	Url string `json:"url"`
 	// ID of the predicted person
 	PredictID *int32 `json:"predict_id"`
 	// Status of the scenario (init_startup, in_startup_processing, active, init_shutdown, in_shutdown_processing, inactive)

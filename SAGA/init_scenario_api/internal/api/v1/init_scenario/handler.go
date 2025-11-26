@@ -47,6 +47,11 @@ func (h *Handler) InitScenario(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.URL == "" {
+		response.Error(w, log, http.StatusBadRequest, "Invalid url", "url is required")
+		return
+	}
+
 	output, err := h.useCase.InitScenario(ctx, req)
 	if err != nil {
 		log.Error("failed to init scenario", zap.Error(err))

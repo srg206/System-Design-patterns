@@ -15,6 +15,7 @@ import (
 )
 
 type ObtainFrameWorker struct {
+	CameraID        int
 	skipFrames      *int
 	url             string
 	videoCap        *gocv.VideoCapture
@@ -93,13 +94,8 @@ func (w *ObtainFrameWorker) ProcessInference(frame *gocv.Mat) {
 		w.drawBoundingBoxes(frame, detections)
 	}
 	// Save the processed frame to a file
-	filename := fmt.Sprintf("frame_%d.jpg", time.Now().UnixNano())
-	if ok := gocv.IMWrite(filename, *frame); !ok {
-		log.Printf("failed to write %s", filename)
-	} else {
-		log.Printf("saved %s", filename)
-	}
-
+	//filename := fmt.Sprintf("frame_%d.jpg", time.Now().UnixNano())
+	w.saveFrameToS3(frame)
 }
 
 func (w *ObtainFrameWorker) sendFrameToInference(frame *gocv.Mat) ([]*inferencepb.Detection, error) {
