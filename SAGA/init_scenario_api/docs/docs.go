@@ -86,11 +86,15 @@ const docTemplate = `{
         "dto.InitScenarioRequest": {
             "type": "object",
             "required": [
-                "camera_id"
+                "camera_id",
+                "url"
             ],
             "properties": {
                 "camera_id": {
                     "type": "integer"
+                },
+                "url": {
+                    "type": "string"
                 }
             }
         },

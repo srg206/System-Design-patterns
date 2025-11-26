@@ -4,8 +4,11 @@ definitions:
     properties:
       camera_id:
         type: integer
+      url:
+        type: string
     required:
     - camera_id
+    - url
     type: object
   dto.InitScenarioResponse:
     properties:

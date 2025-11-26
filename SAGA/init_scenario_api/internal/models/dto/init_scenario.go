@@ -7,7 +7,8 @@ import (
 
 // InitScenarioRequest представляет запрос на создание нового сценария
 type InitScenarioRequest struct {
-	CameraID int32 `json:"camera_id" validate:"required,gt=0"`
+	CameraID int32  `json:"camera_id" validate:"required,gt=0"`
+	URL      string `json:"url" validate:"required"`
 }
 
 // Decode декодирует JSON из reader в структуру

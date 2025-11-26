@@ -19,7 +19,8 @@ const (
 )
 
 type payload struct {
-	CameraID int `json:"camera_id"`
+	CameraID int    `json:"camera_id"`
+	URL      string `json:"url"`
 }
 
 type result struct {
@@ -49,7 +50,10 @@ func main() {
 				start := time.Now()
 				res := result{cameraID: cameraID}
 
-				body, err := json.Marshal(payload{CameraID: cameraID})
+				body, err := json.Marshal(payload{
+					CameraID: cameraID,
+					URL:      "rtsp://localhost:8554/mystream",
+				})
 				if err != nil {
 					res.err = fmt.Errorf("marshal payload: %w", err)
 					results <- res

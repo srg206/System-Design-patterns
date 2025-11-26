@@ -2,6 +2,7 @@
 CREATE TABLE IF NOT EXISTS scenario (
     uuid UUID NOT NULL UNIQUE,
     camera_id INTEGER NOT NULL,
+    url TEXT NOT NULL DEFAULT '',
     predict_id INTEGER,
     status TEXT DEFAULT 'init_startup',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -11,6 +12,7 @@ CREATE TABLE IF NOT EXISTS scenario (
 COMMENT ON TABLE scenario IS 'Scenario table for storing scenario state and camera prediction';
 COMMENT ON COLUMN scenario.uuid IS 'Unique identifier for the scenario (UUID format)';
 COMMENT ON COLUMN scenario.camera_id IS 'ID of the camera being used in the scenario';
+COMMENT ON COLUMN scenario.url IS 'URL to connect to camera';
 COMMENT ON COLUMN scenario.predict_id IS 'ID of the predicted person';
 COMMENT ON COLUMN scenario.status IS 'Status of the scenario (init_startup, in_startup_processing, active, init_shutdown, in_shutdown_processing, inactive)';
 COMMENT ON COLUMN scenario.created_at IS 'Timestamp when the scenario was created';
