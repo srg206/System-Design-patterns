@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.30.0
 
-package queries
+package outbox
 
 import (
 	"github.com/jackc/pgx/v5/pgtype"
@@ -21,6 +21,8 @@ type OutboxScenario struct {
 	CreatedAt pgtype.Timestamp `json:"created_at"`
 	// Timestamp when the message was last updated
 	UpdatedAt pgtype.Timestamp `json:"updated_at"`
+	// Timestamp until which the outbox message is locked from being processed
+	LockedUntil pgtype.Timestamp `json:"locked_until"`
 }
 
 // Scenario table for storing scenario state and camera prediction
@@ -29,6 +31,8 @@ type Scenario struct {
 	Uuid pgtype.UUID `json:"uuid"`
 	// ID of the camera being used in the scenario
 	CameraID int32 `json:"camera_id"`
+	// URL to connect to camera
+	Url string `json:"url"`
 	// ID of the predicted person
 	PredictID *int32 `json:"predict_id"`
 	// Status of the scenario (init_startup, in_startup_processing, active, init_shutdown, in_shutdown_processing, inactive)

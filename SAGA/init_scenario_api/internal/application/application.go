@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"init_scenario_api/config"
+	"init_scenario_api/internal/infastructure/kafka"
 	"init_scenario_api/internal/infastructure/repository"
 	"init_scenario_api/pkg/closer"
 	"init_scenario_api/pkg/database"
@@ -15,9 +16,11 @@ import (
 )
 
 type App struct {
-	Logger       *zap.Logger
-	Closer       *closer.Closer
-	PostgresRepo *repository.Repository
+	Logger        *zap.Logger
+	Closer        *closer.Closer
+	PostgresRepo  *repository.Repository
+	KafkaProducer kafka.Producer
+	Config        *config.Config
 }
 
 func NewApp() (App, error) {
@@ -37,8 +40,15 @@ func NewApp() (App, error) {
 		return nil
 	})
 
+	cfg, err := config.Load()
+	if err != nil {
+		log.Error("failed to load config", zap.Error(err))
+		return app, err
+	}
+	app.Config = cfg
+
 	ctx := context.Background()
-	dbPool, err := InitDB(ctx)
+	dbPool, err := InitDB(ctx, cfg)
 	if err != nil {
 		log.Error("can not initialize db", zap.Error(err))
 		return app, err
@@ -50,15 +60,22 @@ func NewApp() (App, error) {
 		return nil
 	})
 
+	kafkaConfig := kafka.DefaultConfig(cfg.Producer.KafkaBrokers...)
+	kafkaProducer, err := kafka.NewKafkaProducer(kafkaConfig, log)
+	if err != nil {
+		log.Error("failed to initialize kafka producer", zap.Error(err))
+		return app, err
+	}
+	app.KafkaProducer = kafkaProducer
+
+	app.Closer.Add(func() error {
+		return kafkaProducer.Close()
+	})
+
 	return app, nil
 }
 
-func InitDB(ctx context.Context) (*pgxpool.Pool, error) {
-	cfg, err := config.Load()
-	if err != nil {
-		return nil, fmt.Errorf("failed to load config: %w", err)
-	}
-
+func InitDB(ctx context.Context, cfg *config.Config) (*pgxpool.Pool, error) {
 	dbPool, err := database.NewPool(ctx, cfg.Database, cfg.Pool)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create database pool: %w", err)

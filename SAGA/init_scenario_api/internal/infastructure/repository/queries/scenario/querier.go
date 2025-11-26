@@ -2,17 +2,16 @@
 // versions:
 //   sqlc v1.30.0
 
-package queries
+package scenario
 
 import (
 	"context"
 )
 
 type Querier interface {
-	CreateOutboxScenario(ctx context.Context, arg CreateOutboxScenarioParams) (OutboxScenario, error)
 	CreateScenario(ctx context.Context, arg CreateScenarioParams) (Scenario, error)
-	UpdateOutboxScenarioState(ctx context.Context, arg UpdateOutboxScenarioStateParams) error
 	UpdateScenarioPredictByUUID(ctx context.Context, arg UpdateScenarioPredictByUUIDParams) error
+	UpdateScenarioStatusBatch(ctx context.Context, arg UpdateScenarioStatusBatchParams) error
 	UpdateScenarioStatusByUUID(ctx context.Context, arg UpdateScenarioStatusByUUIDParams) error
 }
 
