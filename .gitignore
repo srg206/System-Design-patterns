@@ -30,3 +30,4 @@ app.env
 # Editor/IDE
 # .idea/
 # .vscode/
+RTSP_PROCESSING/runner/internal/infrastructure/workers/obtain_frame_worker/video.mp4

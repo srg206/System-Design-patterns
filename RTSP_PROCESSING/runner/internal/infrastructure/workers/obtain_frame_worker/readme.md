@@ -5,9 +5,9 @@ paths:
 
 
 
-1) start  mediamtx mediamtx.yml 
+1) start:  mediamtx mediamtx.yml 
 2) run any videofile 
-ffmpeg -re -stream_loop -1 -i "fileName.mp4" \
+ffmpeg -re -stream_loop -1 -i "video.mp4" \
   -c copy \
   -f rtsp \
   -rtsp_transport tcp \

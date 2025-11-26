@@ -17,8 +17,12 @@ proto/
 *.swp
 *.swo
 
+
+
 # Test images
 *.jpg
 *.jpeg
 *.png
 !test_image.jpg
+frame_000000.jpg
+frame_000000.jpg.b64.txt
