@@ -1,0 +1,127 @@
+version: '3.8'
+
+services:
+  # api:
+  #   container_name: init-scenario-api
+  #   build:
+  #     context: .
+  #     dockerfile: ./deploy/api.Dockerfile
+  #   ports:
+  #     - "${API_PORT:-3000}:${API_PORT:-3000}"
+  #   env_file:
+  #     - ./app.env
+  #   environment:
+  #     - PORT=${API_PORT:-3000}
+  #   volumes:
+  #     - ./logs/api:/var/log/api
+  #   logging:
+  #     driver: "json-file"
+  #     options:
+  #       max-size: "10m"
+  #       max-file: "3"
+  #       labels: "service"
+  #   labels:
+  #     logging: "promtail"
+  #     service: "init-scenario-api"
+  #   depends_on:
+  #     - postgres
+  #   networks:
+  #     - app-network
+
+  # producer:
+  #   container_name: producer
+  #   build:
+  #     context: .
+  #     dockerfile: ./deploy/producer.Dockerfile
+  #   ports:
+  #     - "${PRODUCER_PORT:-3001}:${PRODUCER_PORT:-3001}"
+  #   env_file:
+  #     - ./app.env
+  #   environment:
+  #     - PORT=${PRODUCER_PORT:-3001}
+  #   volumes:
+  #     - ./logs/producer:/var/log/producer
+  #   logging:
+  #     driver: "json-file"
+  #     options:
+  #       max-size: "10m"
+  #       max-file: "3"
+  #       labels: "service"
+  #   labels:
+  #     logging: "promtail"
+  #     service: "init-scenario-producer"
+  #   depends_on:
+  #     - postgres
+  #   networks:
+  #     - app-network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    environment:
+      - POSTGRES_USER=${DB_USER:-user}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-password}
+      - POSTGRES_DB=${DB_NAME:-db}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  loki:
+    container_name: loki
+    image: grafana/loki:2.9.3
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./deploy/config/loki-config.yaml:/etc/loki/local-config.yaml
+      - loki-data:/loki
+    networks:
+      - app-network
+
+  promtail:
+    image: grafana/promtail:2.9.3
+    container_name: promtail
+    volumes:
+      - ./deploy/config/promtail-config.yaml:/etc/promtail/config.yml
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./logs:/var/log
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    networks:
+      - app-network
+
+  grafana:
+    image: grafana/grafana:10.2.3
+    container_name: grafana
+    ports:
+      - "3002:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./deploy/config/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+    depends_on:
+      - loki
+    networks:
+      - app-network
+
+volumes:
+  postgres-data:
+  loki-data:
+  grafana-data:
+
+networks:
+  app-network:
+    driver: bridge
