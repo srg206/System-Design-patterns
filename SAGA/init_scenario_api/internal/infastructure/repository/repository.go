@@ -5,20 +5,24 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"init_scenario_api/internal/infastructure/repository/queries"
+	"init_scenario_api/internal/infastructure/repository/queries/outbox"
+	"init_scenario_api/internal/infastructure/repository/queries/scenario"
 )
 
 type Repository struct {
-	dbPool  *pgxpool.Pool
-	queries *queries.Queries
+	dbPool          *pgxpool.Pool
+	scenarioQueries *scenario.Queries
+	outboxQueries   *outbox.Queries
 }
 
 func NewRepository(dbPool *pgxpool.Pool) *Repository {
 	return &Repository{
-		dbPool:  dbPool,
-		queries: queries.New(dbPool),
+		dbPool:          dbPool,
+		scenarioQueries: scenario.New(dbPool),
+		outboxQueries:   outbox.New(dbPool),
 	}
 }
 
@@ -35,34 +39,75 @@ func extractTx(ctx context.Context) pgx.Tx {
 	return nil
 }
 
-func (r *Repository) Queries(ctx context.Context) *queries.Queries {
+// getScenarioQueries returns scenario queries with transaction if exists in context
+func (r *Repository) getScenarioQueries(ctx context.Context) scenario.Querier {
 	tx := extractTx(ctx)
 	if tx != nil {
-		return r.queries.WithTx(tx)
+		return r.scenarioQueries.WithTx(tx)
 	}
-	return r.queries
+	return r.scenarioQueries
 }
 
-func (r *Repository) CreateOutboxScenario(ctx context.Context, arg queries.CreateOutboxScenarioParams) (queries.OutboxScenario, error) {
-	return r.Queries(ctx).CreateOutboxScenario(ctx, arg)
+// getOutboxQueries returns outbox queries with transaction if exists in context
+func (r *Repository) getOutboxQueries(ctx context.Context) outbox.Querier {
+	tx := extractTx(ctx)
+	if tx != nil {
+		return r.outboxQueries.WithTx(tx)
+	}
+	return r.outboxQueries
 }
 
-func (r *Repository) CreateScenario(ctx context.Context, arg queries.CreateScenarioParams) (queries.Scenario, error) {
-	return r.Queries(ctx).CreateScenario(ctx, arg)
+// CreateScenario creates a new scenario record
+func (r *Repository) CreateScenario(ctx context.Context, arg scenario.CreateScenarioParams) (scenario.Scenario, error) {
+	return r.getScenarioQueries(ctx).CreateScenario(ctx, arg)
 }
 
-func (r *Repository) UpdateOutboxScenarioState(ctx context.Context, arg queries.UpdateOutboxScenarioStateParams) error {
-	return r.Queries(ctx).UpdateOutboxScenarioState(ctx, arg)
+// UpdateScenarioStatusByUUID updates scenario status by UUID
+func (r *Repository) UpdateScenarioStatusByUUID(ctx context.Context, arg scenario.UpdateScenarioStatusByUUIDParams) error {
+	return r.getScenarioQueries(ctx).UpdateScenarioStatusByUUID(ctx, arg)
 }
 
-func (r *Repository) UpdateScenarioPredictByUUID(ctx context.Context, arg queries.UpdateScenarioPredictByUUIDParams) error {
-	return r.Queries(ctx).UpdateScenarioPredictByUUID(ctx, arg)
+// UpdateScenarioStatusBatch updates scenario status for multiple UUIDs
+func (r *Repository) UpdateScenarioStatusBatch(ctx context.Context, arg scenario.UpdateScenarioStatusBatchParams) error {
+	return r.getScenarioQueries(ctx).UpdateScenarioStatusBatch(ctx, arg)
 }
 
-func (r *Repository) UpdateScenarioStatusByUUID(ctx context.Context, arg queries.UpdateScenarioStatusByUUIDParams) error {
-	return r.Queries(ctx).UpdateScenarioStatusByUUID(ctx, arg)
+// UpdateScenarioPredictByUUID updates scenario predict_id by UUID
+func (r *Repository) UpdateScenarioPredictByUUID(ctx context.Context, arg scenario.UpdateScenarioPredictByUUIDParams) error {
+	return r.getScenarioQueries(ctx).UpdateScenarioPredictByUUID(ctx, arg)
 }
 
+// CreateOutboxScenario creates a new outbox scenario record
+func (r *Repository) CreateOutboxScenario(ctx context.Context, arg outbox.CreateOutboxScenarioParams) (outbox.OutboxScenario, error) {
+	return r.getOutboxQueries(ctx).CreateOutboxScenario(ctx, arg)
+}
+
+// UpdateOutboxScenarioState updates outbox scenario state by scenario UUID
+func (r *Repository) UpdateOutboxScenarioState(ctx context.Context, arg outbox.UpdateOutboxScenarioStateParams) error {
+	return r.getOutboxQueries(ctx).UpdateOutboxScenarioState(ctx, arg)
+}
+
+// LockOutboxScenario locks outbox scenario until specified time
+func (r *Repository) LockOutboxScenario(ctx context.Context, arg outbox.LockOutboxScenarioParams) error {
+	return r.getOutboxQueries(ctx).LockOutboxScenario(ctx, arg)
+}
+
+// GetPendingOutboxScenarios retrieves pending outbox records with row-level lock
+func (r *Repository) GetPendingOutboxScenarios(ctx context.Context, limit int32) ([]outbox.OutboxScenario, error) {
+	return r.getOutboxQueries(ctx).GetPendingOutboxScenarios(ctx, limit)
+}
+
+// LockOutboxScenariosBatch locks multiple outbox scenarios for 1 minute
+func (r *Repository) LockOutboxScenariosBatch(ctx context.Context, outboxUUIDs []pgtype.UUID) error {
+	return r.getOutboxQueries(ctx).LockOutboxScenariosBatch(ctx, outboxUUIDs)
+}
+
+// MarkOutboxScenariosAsSentBatch marks multiple outbox scenarios as sent and unlocks them
+func (r *Repository) MarkOutboxScenariosAsSentBatch(ctx context.Context, outboxUUIDs []pgtype.UUID) error {
+	return r.getOutboxQueries(ctx).MarkOutboxScenariosAsSentBatch(ctx, outboxUUIDs)
+}
+
+// WithinTransaction executes a function within a database transaction
 func (r *Repository) WithinTransaction(ctx context.Context, tFunc func(ctx context.Context) error) error {
 	// If already in transaction, just execute the function
 	tx := extractTx(ctx)
@@ -102,6 +147,7 @@ func (r *Repository) WithinTransaction(ctx context.Context, tFunc func(ctx conte
 	return nil
 }
 
+// GetDBPool returns the database connection pool
 func (r *Repository) GetDBPool() *pgxpool.Pool {
 	return r.dbPool
 }

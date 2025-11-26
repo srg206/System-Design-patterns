@@ -14,6 +14,7 @@ type OutboxScenario struct {
 	State        string                 `json:"state" db:"state"`
 	CreatedAt    time.Time              `json:"created_at" db:"created_at"`
 	UpdatedAt    *time.Time             `json:"updated_at,omitempty" db:"updated_at"`
+	LockedUntil  *time.Time             `json:"locked_until,omitempty" db:"locked_until"`
 }
 
 // OutboxState представляет возможные состояния outbox сообщения

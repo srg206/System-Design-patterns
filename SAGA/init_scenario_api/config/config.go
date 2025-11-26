@@ -13,6 +13,7 @@ type Config struct {
 	Producer ProducerConfig
 	Database DatabaseConfig
 	Pool     PoolConfig
+	Kafka    KafkaConfig
 }
 
 type APIConfig struct {
@@ -37,6 +38,9 @@ type DatabaseConfig struct {
 	Name     string
 }
 
+type KafkaConfig struct {
+	Brokers []string
+}
 type PoolConfig struct {
 	MaxConns          int32
 	MinConns          int32
@@ -64,7 +68,7 @@ func Load() (*Config, error) {
 	}
 	cfg.Producer.Port = producerPort
 
-	kafkaBrokers := getEnv("KAFKA_BROKERS", "localhost:9092")
+	kafkaBrokers := getEnv("KAFKA_BROKERS", "localhost:9092,localhost:9093,localhost:9094")
 	cfg.Producer.KafkaBrokers = parseList(kafkaBrokers)
 
 	cfg.Producer.KafkaUsername = getEnv("KAFKA_USERNAME", "")
@@ -117,6 +121,10 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("invalid DB_POOL_CONNECT_TIMEOUT: %w", err)
 	}
 
+	cfg.Kafka.Brokers = parseList(getEnv("KAFKA_BROKERS", "localhost:9092,localhost:9093,localhost:9094"))
+	if len(cfg.Kafka.Brokers) == 0 {
+		cfg.Kafka.Brokers = []string{"localhost:9092", "localhost:9093", "localhost:9094"}
+	}
 	return cfg, nil
 }
 

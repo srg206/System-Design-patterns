@@ -2,72 +2,73 @@ package convert
 
 import (
 	"encoding/json"
-	"init_scenario_api/internal/infastructure/repository/queries"
+	"init_scenario_api/internal/infastructure/repository/queries/outbox"
+	"init_scenario_api/internal/infastructure/repository/queries/scenario"
 	"init_scenario_api/internal/models/dto"
 	"init_scenario_api/internal/models/entity"
 
 	"github.com/google/uuid"
 )
 
-func ScenarioFromDB(dbScenario queries.Scenario) *entity.Scenario {
-	scenario := &entity.Scenario{
+func ScenarioFromDB(dbScenario scenario.Scenario) *entity.Scenario {
+	result := &entity.Scenario{
 		CameraID: dbScenario.CameraID,
 	}
 
 	if dbScenario.Uuid.Valid {
-		scenario.UUID = uuid.UUID(dbScenario.Uuid.Bytes)
+		result.UUID = uuid.UUID(dbScenario.Uuid.Bytes)
 	}
 
 	if dbScenario.PredictID != nil {
-		scenario.PredictID = *dbScenario.PredictID
+		result.PredictID = *dbScenario.PredictID
 	}
 
 	if dbScenario.Status != nil {
-		scenario.Status = *dbScenario.Status
+		result.Status = *dbScenario.Status
 	}
 
 	if dbScenario.CreatedAt.Valid {
-		scenario.CreatedAt = dbScenario.CreatedAt.Time
+		result.CreatedAt = dbScenario.CreatedAt.Time
 	}
 
 	if dbScenario.UpdatedAt.Valid {
-		scenario.UpdatedAt = &dbScenario.UpdatedAt.Time
+		result.UpdatedAt = &dbScenario.UpdatedAt.Time
 	}
 
-	return scenario
+	return result
 }
 
-func OutboxScenarioFromDB(dbOutbox queries.OutboxScenario) *entity.OutboxScenario {
-	outbox := &entity.OutboxScenario{}
+func OutboxScenarioFromDB(dbOutbox outbox.OutboxScenario) *entity.OutboxScenario {
+	result := &entity.OutboxScenario{}
 
 	if dbOutbox.OutboxUuid.Valid {
-		outbox.OutboxUUID = uuid.UUID(dbOutbox.OutboxUuid.Bytes)
+		result.OutboxUUID = uuid.UUID(dbOutbox.OutboxUuid.Bytes)
 	}
 
 	if dbOutbox.ScenarioUuid.Valid {
-		outbox.ScenarioUUID = uuid.UUID(dbOutbox.ScenarioUuid.Bytes)
+		result.ScenarioUUID = uuid.UUID(dbOutbox.ScenarioUuid.Bytes)
 	}
 
 	if len(dbOutbox.Payload) > 0 {
 		var payload map[string]interface{}
 		if err := json.Unmarshal(dbOutbox.Payload, &payload); err == nil {
-			outbox.Payload = payload
+			result.Payload = payload
 		}
 	}
 
 	if dbOutbox.State != nil {
-		outbox.State = *dbOutbox.State
+		result.State = *dbOutbox.State
 	}
 
 	if dbOutbox.CreatedAt.Valid {
-		outbox.CreatedAt = dbOutbox.CreatedAt.Time
+		result.CreatedAt = dbOutbox.CreatedAt.Time
 	}
 
 	if dbOutbox.UpdatedAt.Valid {
-		outbox.UpdatedAt = &dbOutbox.UpdatedAt.Time
+		result.UpdatedAt = &dbOutbox.UpdatedAt.Time
 	}
 
-	return outbox
+	return result
 }
 
 func ScenarioToDTO(scenario *entity.Scenario) *dto.InitScenarioResponse {

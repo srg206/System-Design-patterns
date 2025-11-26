@@ -81,17 +81,17 @@ endef
 
 migrate-up: ## Применение миграций (up)
 	@echo "$(GREEN)Применение миграций...$(NC)"
-	@$(load_env) goose -dir migrations postgres "postgres://$${DB_USER}:$${DB_PASSWORD}@$${DB_HOST}:$${DB_PORT}/$${DB_NAME}?sslmode=disable" up
+	@$(load_env) goose -dir migrations postgres "postgres://user:password@localhost:5432/db?sslmode=disable" up
 	@echo "$(GREEN)Миграции применены!$(NC)"
 
 migrate-down: ## Откат миграций (down)
 	@echo "$(YELLOW)Откат миграций...$(NC)"
-	@$(load_env) goose -dir migrations postgres "postgres://$${DB_USER}:$${DB_PASSWORD}@$${DB_HOST}:$${DB_PORT}/$${DB_NAME}?sslmode=disable" down
+	@$(load_env) goose -dir migrations postgres "postgres://user:password@localhost:5432/db?sslmode=disable" down 
 	@echo "$(GREEN)Миграции откатаны!$(NC)"
 
 migrate-status: ## Статус миграций
 	@echo "$(GREEN)Статус миграций:$(NC)"
-	@$(load_env) goose -dir migrations postgres "postgres://$${DB_USER}:$${DB_PASSWORD}@$${DB_HOST}:$${DB_PORT}/$${DB_NAME}?sslmode=disable" status
+	@$(load_env) goose -dir migrations postgres "postgres://user:password@localhost:5432/db?sslmode=disable" status
 
 migrate-create: ## Создание новой миграции (используйте: make migrate-create NAME=имя_миграции)
 	@echo "$(GREEN)Создание новой миграции: $(NAME)$(NC)"
