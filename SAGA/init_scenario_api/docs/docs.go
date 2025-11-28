@@ -80,9 +80,67 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/scenario/{uuid}/status": {
+            "get": {
+                "description": "Возвращает статус сценария по UUID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "scenario"
+                ],
+                "summary": "Получить статус сценария",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID сценария",
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.GetScenarioStatusResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "dto.GetScenarioStatusResponse": {
+            "type": "object",
+            "properties": {
+                "scenario_uuid": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.InitScenarioRequest": {
             "type": "object",
             "required": [

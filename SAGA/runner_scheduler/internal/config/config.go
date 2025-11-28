@@ -15,6 +15,9 @@ type Config struct {
 	Pool     PoolConfig
 	Kafka    KafkaConfig
 }
+type RunnerConfig struct {
+	GrpcAddress string
+}
 
 type APIConfig struct {
 	Port        int

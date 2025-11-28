@@ -5,7 +5,7 @@ package runner.v1;
 option go_package = "runner/proto/server/runner/v1;runnerpb";
 
 message StartWorkerRequest {
-  string camera_id = 1;
+  int32 camera_id = 1;
   string url = 2;
 }
 
@@ -15,7 +15,7 @@ message StartWorkerResponse {
 }
 
 message RemoveWorkerRequest {
-  string camera_id = 1;
+  int32 camera_id = 1;
 }
 
 message RemoveWorkerResponse {

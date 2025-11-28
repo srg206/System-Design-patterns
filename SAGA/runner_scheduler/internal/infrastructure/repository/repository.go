@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"runner_scheduler/internal/infrastructure/repository/queries/inbox_start_scenario"
+	"runner_scheduler/internal/infrastructure/repository/queries/worker"
 	modelerror "runner_scheduler/internal/models/error"
 )
 
@@ -23,12 +24,14 @@ const (
 type Repository struct {
 	dbPool                    *pgxpool.Pool
 	inboxStartScenarioQueries *inbox_start_scenario.Queries
+	workerQueries             *worker.Queries
 }
 
 func NewRepository(dbPool *pgxpool.Pool) *Repository {
 	return &Repository{
 		dbPool:                    dbPool,
 		inboxStartScenarioQueries: inbox_start_scenario.New(dbPool),
+		workerQueries:             worker.New(dbPool),
 	}
 }
 
@@ -53,6 +56,14 @@ func (r *Repository) getInboxStartScenarioQueries(ctx context.Context) inbox_sta
 	return r.inboxStartScenarioQueries
 }
 
+func (r *Repository) getWorkerQueries(ctx context.Context) worker.Querier {
+	tx := extractTx(ctx)
+	if tx != nil {
+		return r.workerQueries.WithTx(tx)
+	}
+	return r.workerQueries
+}
+
 func (r *Repository) CreateInboxStartScenario(ctx context.Context, arg inbox_start_scenario.CreateInboxStartScenarioParams) (inbox_start_scenario.InboxStartScenario, error) {
 	result, err := r.getInboxStartScenarioQueries(ctx).CreateInboxStartScenario(ctx, arg)
 	if err != nil {
@@ -63,6 +74,49 @@ func (r *Repository) CreateInboxStartScenario(ctx context.Context, arg inbox_sta
 		return result, err
 	}
 	return result, nil
+}
+
+func (r *Repository) CreateWorker(ctx context.Context, arg worker.CreateWorkerParams) (worker.Worker, error) {
+	result, err := r.getWorkerQueries(ctx).CreateWorker(ctx, arg)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == pgErrCodeUniqueViolation {
+			return result, modelerror.ErrDuplicateKey
+		}
+		return result, err
+	}
+	return result, nil
+}
+
+func (r *Repository) CreateNodeWorker(ctx context.Context, arg worker.CreateNodeWorkerParams) (worker.NodeWorker, error) {
+	return r.getWorkerQueries(ctx).CreateNodeWorker(ctx, arg)
+}
+
+func (r *Repository) GetWorkerByCameraID(ctx context.Context, cameraID int32) (worker.Worker, error) {
+	return r.getWorkerQueries(ctx).GetWorkerByCameraID(ctx, cameraID)
+}
+
+func (r *Repository) UpdateWorkerStatus(ctx context.Context, arg worker.UpdateWorkerStatusParams) (worker.Worker, error) {
+	return r.getWorkerQueries(ctx).UpdateWorkerStatus(ctx, arg)
+}
+
+func (r *Repository) DeleteWorker(ctx context.Context, id int32) error {
+	return r.getWorkerQueries(ctx).DeleteWorker(ctx, id)
+}
+
+func (r *Repository) DeleteNodeWorkerByWorkerID(ctx context.Context, workerID int32) error {
+	return r.getWorkerQueries(ctx).DeleteNodeWorkerByWorkerID(ctx, workerID)
+}
+
+func (r *Repository) GetOldestWorkersByStatus(ctx context.Context, status string, limit int32) ([]worker.Worker, error) {
+	return r.getWorkerQueries(ctx).GetOldestWorkersByStatus(ctx, worker.GetOldestWorkersByStatusParams{
+		Status: status,
+		Limit:  limit,
+	})
+}
+
+func (r *Repository) GetLeastLoadedNodes(ctx context.Context, limit int32) ([]worker.GetLeastLoadedNodesRow, error) {
+	return r.getWorkerQueries(ctx).GetLeastLoadedNodes(ctx, limit)
 }
 
 // WithinTransaction executes a function within a database transaction

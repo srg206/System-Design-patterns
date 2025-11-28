@@ -1,5 +1,12 @@
 basePath: /api/v1
 definitions:
+  dto.GetScenarioStatusResponse:
+    properties:
+      scenario_uuid:
+        type: string
+      status:
+        type: string
+    type: object
   dto.InitScenarioRequest:
     properties:
       camera_id:
@@ -43,6 +50,37 @@ paths:
       summary: Проверка здоровья сервиса
       tags:
       - health
+  /scenario/{uuid}/status:
+    get:
+      description: Возвращает статус сценария по UUID
+      parameters:
+      - description: UUID сценария
+        in: path
+        name: uuid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.GetScenarioStatusResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Получить статус сценария
+      tags:
+      - scenario
   /scenario/init:
     post:
       consumes:

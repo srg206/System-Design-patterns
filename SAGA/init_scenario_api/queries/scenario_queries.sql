@@ -25,3 +25,5 @@ SET status = $2,
     updated_at = NOW()
 WHERE uuid = ANY($1::uuid[]);
 
+-- name: GetScenarioStatusByUUID :one
+SELECT uuid, status FROM scenario WHERE uuid = $1;

@@ -71,6 +71,10 @@ func (r *Repository) UpdateScenarioPredictByUUID(ctx context.Context, arg scenar
 	return r.getScenarioQueries(ctx).UpdateScenarioPredictByUUID(ctx, arg)
 }
 
+func (r *Repository) GetScenarioStatusByUUID(ctx context.Context, uuid pgtype.UUID) (scenario.GetScenarioStatusByUUIDRow, error) {
+	return r.getScenarioQueries(ctx).GetScenarioStatusByUUID(ctx, uuid)
+}
+
 func (r *Repository) CreateOutboxScenario(ctx context.Context, arg outbox.CreateOutboxScenarioParams) (outbox.OutboxScenario, error) {
 	return r.getOutboxQueries(ctx).CreateOutboxScenario(ctx, arg)
 }

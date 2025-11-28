@@ -12,6 +12,7 @@ import (
 	"runner_scheduler/internal/infrastructure/kafka"
 	"runner_scheduler/internal/infrastructure/repository"
 	"runner_scheduler/internal/infrastructure/repository/queries/inbox_start_scenario"
+	"runner_scheduler/internal/infrastructure/repository/queries/worker"
 	modelerror "runner_scheduler/internal/models/error"
 	"runner_scheduler/pkg/closer"
 	"runner_scheduler/pkg/database"
@@ -133,11 +134,24 @@ func run() int {
 				continue
 			}
 
-			_, err = repo.CreateInboxStartScenario(ctx, inbox_start_scenario.CreateInboxStartScenarioParams{
-				OutboxUuid:   outboxUUID,
-				CameraID:     payload.CameraID,
-				ScenarioUuid: scenarioUUID,
-				Url:          payload.URL,
+			err = repo.WithinTransaction(ctx, func(txCtx context.Context) error {
+				_, err := repo.CreateInboxStartScenario(txCtx, inbox_start_scenario.CreateInboxStartScenarioParams{
+					OutboxUuid:   outboxUUID,
+					CameraID:     payload.CameraID,
+					ScenarioUuid: scenarioUUID,
+					Url:          payload.URL,
+				})
+				if err != nil {
+					return err
+				}
+
+				_, err = repo.CreateWorker(txCtx, worker.CreateWorkerParams{
+					CameraID:     payload.CameraID,
+					ScenarioUuid: scenarioUUID,
+					Url:          payload.URL,
+					Status:       "pending",
+				})
+				return err
 			})
 			if err != nil {
 				if errors.Is(err, modelerror.ErrDuplicateKey) {

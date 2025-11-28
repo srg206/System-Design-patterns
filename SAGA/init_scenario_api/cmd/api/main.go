@@ -11,9 +11,11 @@ import (
 	"init_scenario_api/config"
 	_ "init_scenario_api/docs"
 	loggerMiddleware "init_scenario_api/internal/api/middleware"
+	"init_scenario_api/internal/api/v1/get_scenario_status"
 	"init_scenario_api/internal/api/v1/health"
 	"init_scenario_api/internal/api/v1/init_scenario"
 	"init_scenario_api/internal/application"
+	getScenarioStatusUseCase "init_scenario_api/internal/usecase/get_scenario_status"
 	initScenarioUseCase "init_scenario_api/internal/usecase/init_scenario"
 	"init_scenario_api/pkg/common"
 
@@ -48,6 +50,9 @@ func run() int {
 	initScenarioUC := initScenarioUseCase.NewUseCase(app.PostgresRepo)
 	initScenarioHandler := init_scenario.NewHandler(initScenarioUC)
 
+	getScenarioStatusUC := getScenarioStatusUseCase.NewUseCase(app.PostgresRepo)
+	getScenarioStatusHandler := get_scenario_status.NewHandler(getScenarioStatusUC)
+
 	r := chi.NewRouter()
 
 	r.Use(loggerMiddleware.New(app.Logger).Handle)
@@ -56,6 +61,7 @@ func run() int {
 		r.Get("/health", health.HealthCheckHandler)
 
 		r.Post("/scenario/init", initScenarioHandler.InitScenario)
+		r.Get("/scenario/{uuid}/status", getScenarioStatusHandler.GetScenarioStatus)
 	})
 
 	addr := fmt.Sprintf(":%d", cfg.API.Port)

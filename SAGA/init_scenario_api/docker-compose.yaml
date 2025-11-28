@@ -57,7 +57,7 @@ services:
 
   postgres:
     image: postgres:16-alpine
-    container_name: postgres
+    container_name: init-scenario-postgres
     ports:
       - "${DB_PORT:-5432}:5432"
     environment:

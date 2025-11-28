@@ -42,6 +42,22 @@ func (q *Queries) CreateScenario(ctx context.Context, arg CreateScenarioParams) 
 	return i, err
 }
 
+const getScenarioStatusByUUID = `-- name: GetScenarioStatusByUUID :one
+SELECT uuid, status FROM scenario WHERE uuid = $1
+`
+
+type GetScenarioStatusByUUIDRow struct {
+	Uuid   pgtype.UUID `json:"uuid"`
+	Status *string     `json:"status"`
+}
+
+func (q *Queries) GetScenarioStatusByUUID(ctx context.Context, uuid pgtype.UUID) (GetScenarioStatusByUUIDRow, error) {
+	row := q.db.QueryRow(ctx, getScenarioStatusByUUID, uuid)
+	var i GetScenarioStatusByUUIDRow
+	err := row.Scan(&i.Uuid, &i.Status)
+	return i, err
+}
+
 const updateScenarioPredictByUUID = `-- name: UpdateScenarioPredictByUUID :exec
 UPDATE scenario
 SET predict_id = $2,

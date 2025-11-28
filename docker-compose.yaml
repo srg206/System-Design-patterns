@@ -1,0 +1,160 @@
+services:
+  mediamtx:
+    image: bluenviron/mediamtx:latest
+    container_name: mediamtx
+    ports:
+      - "8554:8554"
+      - "1935:1935"
+      - "8888:8888"
+      - "8889:8889"
+    volumes:
+      - ./camera_emulator/mediamtx.yml:/mediamtx.yml
+    restart: unless-stopped
+
+  rtsp-publisher:
+    image: linuxserver/ffmpeg:latest
+    container_name: rtsp-publisher
+    depends_on:
+      - mediamtx
+    volumes:
+      - ./camera_emulator/video.mp4:/video.mp4:ro
+    entrypoint: >
+      /bin/sh -c "
+        sleep 3 &&
+        ffmpeg -re -stream_loop -1 -i /video.mp4
+        -c copy
+        -f rtsp
+        -rtsp_transport tcp
+        rtsp://mediamtx:8554/mystream
+      "
+    restart: unless-stopped
+
+  kafka-controller:
+    image: bitnami/kafka:latest
+    container_name: kafka-controller
+    environment:
+      KAFKA_CFG_NODE_ID: 0
+      KAFKA_CFG_PROCESS_ROLES: controller
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 0@kafka-controller:9093
+      KAFKA_CFG_LISTENERS: CONTROLLER://:9093
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_KRAFT_CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    volumes:
+      - kafka_controller_data:/bitnami/kafka
+    restart: unless-stopped
+
+  kafka-broker-1:
+    image: bitnami/kafka:latest
+    container_name: kafka-broker-1
+    depends_on:
+      - kafka-controller
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_CFG_NODE_ID: 1
+      KAFKA_CFG_PROCESS_ROLES: broker
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 0@kafka-controller:9093
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:29092,EXTERNAL://:9092
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka-broker-1:29092,EXTERNAL://localhost:9092
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_KRAFT_CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    volumes:
+      - kafka_broker_1_data:/bitnami/kafka
+    restart: unless-stopped
+
+  kafka-broker-2:
+    image: bitnami/kafka:latest
+    container_name: kafka-broker-2
+    depends_on:
+      - kafka-controller
+    ports:
+      - "9093:9092"
+    environment:
+      KAFKA_CFG_NODE_ID: 2
+      KAFKA_CFG_PROCESS_ROLES: broker
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 0@kafka-controller:9093
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:29092,EXTERNAL://:9092
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka-broker-2:29092,EXTERNAL://localhost:9093
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_KRAFT_CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    volumes:
+      - kafka_broker_2_data:/bitnami/kafka
+    restart: unless-stopped
+
+  init-scenario-postgres:
+    image: postgres:16-alpine
+    container_name: init-scenario-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: init_scenario
+    volumes:
+      - init_scenario_postgres_data:/var/lib/postgresql/data
+      - ./SAGA/init_scenario_api/migrations:/docker-entrypoint-initdb.d:ro
+    restart: unless-stopped
+
+  runner-postgres:
+    image: postgres:16-alpine
+    container_name: runner-postgres
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: runner
+    volumes:
+      - runner_postgres_data:/var/lib/postgresql/data
+      - ./RTSP_PROCESSING/runner/migrations:/docker-entrypoint-initdb.d:ro
+    restart: unless-stopped
+
+  runner-scheduler-postgres-master:
+    image: bitnami/postgresql:16
+    container_name: runner-scheduler-postgres-master
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRESQL_USERNAME: postgres
+      POSTGRESQL_PASSWORD: postgres
+      POSTGRESQL_DATABASE: runner_scheduler
+      POSTGRESQL_REPLICATION_MODE: master
+      POSTGRESQL_REPLICATION_USER: replicator
+      POSTGRESQL_REPLICATION_PASSWORD: replicator_password
+    volumes:
+      - runner_scheduler_master_data:/bitnami/postgresql
+      - ./SAGA/runner_scheduler/migrations:/docker-entrypoint-initdb.d:ro
+    restart: unless-stopped
+
+  runner-scheduler-postgres-replica:
+    image: bitnami/postgresql:16
+    container_name: runner-scheduler-postgres-replica
+    ports:
+      - "5435:5432"
+    depends_on:
+      - runner-scheduler-postgres-master
+    environment:
+      POSTGRESQL_USERNAME: postgres
+      POSTGRESQL_PASSWORD: postgres
+      POSTGRESQL_REPLICATION_MODE: slave
+      POSTGRESQL_REPLICATION_USER: replicator
+      POSTGRESQL_REPLICATION_PASSWORD: replicator_password
+      POSTGRESQL_MASTER_HOST: runner-scheduler-postgres-master
+      POSTGRESQL_MASTER_PORT_NUMBER: 5432
+    volumes:
+      - runner_scheduler_replica_data:/bitnami/postgresql
+    restart: unless-stopped
+
+volumes:
+  kafka_controller_data:
+  kafka_broker_1_data:
+  kafka_broker_2_data:
+  init_scenario_postgres_data:
+  runner_postgres_data:
+  runner_scheduler_master_data:
+  runner_scheduler_replica_data:

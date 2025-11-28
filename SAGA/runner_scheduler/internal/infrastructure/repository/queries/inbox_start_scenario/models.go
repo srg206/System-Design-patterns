@@ -25,3 +25,26 @@ type InboxStartScenario struct {
 	// Timestamp when the message status was last updated
 	UpdatedAt pgtype.Timestamp `json:"updated_at"`
 }
+
+type Node struct {
+	ID        string           `json:"id"`
+	Addr      string           `json:"addr"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+}
+
+type NodeWorker struct {
+	ID         int32            `json:"id"`
+	NodeID     string           `json:"node_id"`
+	WorkerID   int32            `json:"worker_id"`
+	AssignedAt pgtype.Timestamp `json:"assigned_at"`
+}
+
+type Worker struct {
+	ID           int32            `json:"id"`
+	CameraID     int32            `json:"camera_id"`
+	ScenarioUuid pgtype.UUID      `json:"scenario_uuid"`
+	Url          string           `json:"url"`
+	Status       string           `json:"status"`
+	CreatedAt    pgtype.Timestamp `json:"created_at"`
+	UpdatedAt    pgtype.Timestamp `json:"updated_at"`
+}

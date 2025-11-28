@@ -6,10 +6,13 @@ package scenario
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
 	CreateScenario(ctx context.Context, arg CreateScenarioParams) (Scenario, error)
+	GetScenarioStatusByUUID(ctx context.Context, uuid pgtype.UUID) (GetScenarioStatusByUUIDRow, error)
 	UpdateScenarioPredictByUUID(ctx context.Context, arg UpdateScenarioPredictByUUIDParams) error
 	UpdateScenarioStatusBatch(ctx context.Context, arg UpdateScenarioStatusBatchParams) error
 	UpdateScenarioStatusByUUID(ctx context.Context, arg UpdateScenarioStatusByUUIDParams) error

@@ -42,3 +42,9 @@ type CreateOutboxScenarioRequest struct {
 type UpdateOutboxScenarioStateRequest struct {
 	State string `json:"state" validate:"required,oneof=pending sent failed"`
 }
+
+// GetScenarioStatusResponse представляет ответ на запрос статуса сценария
+type GetScenarioStatusResponse struct {
+	ScenarioUUID string `json:"scenario_uuid"`
+	Status       string `json:"status"`
+}
