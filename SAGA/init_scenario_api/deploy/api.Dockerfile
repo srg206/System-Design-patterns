@@ -1,29 +1,25 @@
-# Указываем базовый образ для этапа сборки
-FROM golang:1.25 AS builder
+FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
 
-COPY go.mod ./
+RUN apk add --no-cache gcc musl-dev
 
+COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
 
-RUN go build -o main ./cmd/api/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o main ./cmd/api
 
-# Указываем базовый образ для финального этапа
+
 FROM alpine:latest
 
-# Порт будет передан из docker-compose.yaml через переменную окружения
-ENV PORT=${PORT:-3000}
+RUN apk --no-cache add ca-certificates tzdata
 
-# Устанавливаем glibc
-RUN apk --no-cache add libc6-compat
-
-WORKDIR /root/
+WORKDIR /app
 
 COPY --from=builder /app/main .
 
-EXPOSE ${PORT}
+EXPOSE 3000
 
 CMD ["./main"]

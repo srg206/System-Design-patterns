@@ -2,7 +2,6 @@ package global_handler
 
 import (
 	"context"
-	"strconv"
 
 	"runner/internal/infrastructure/worker_manager"
 	"runner/internal/infrastructure/workers/obtain_frame_worker"
@@ -29,13 +28,7 @@ func NewRunnerServiceHandler(
 }
 
 func (h *RunnerServiceHandler) StartWorker(ctx context.Context, req *pb.StartWorkerRequest) (*pb.StartWorkerResponse, error) {
-	cameraID, err := strconv.Atoi(req.CameraId)
-	if err != nil {
-		return &pb.StartWorkerResponse{
-			Success: false,
-			Error:   "invalid camera_id: " + err.Error(),
-		}, nil
-	}
+	cameraID := int(req.CameraId)
 
 	worker := obtain_frame_worker.ObtainFrameWorkerNew(req.Url, nil, h.inferenceClient, h.s3Client)
 	worker.CameraID = cameraID
@@ -53,15 +46,7 @@ func (h *RunnerServiceHandler) StartWorker(ctx context.Context, req *pb.StartWor
 }
 
 func (h *RunnerServiceHandler) RemoveWorker(ctx context.Context, req *pb.RemoveWorkerRequest) (*pb.RemoveWorkerResponse, error) {
-	cameraID, err := strconv.Atoi(req.CameraId)
-	if err != nil {
-		return &pb.RemoveWorkerResponse{
-			Success: false,
-			Error:   "invalid camera_id: " + err.Error(),
-		}, nil
-	}
-
-	if err := h.workerManager.RemoveWorker(cameraID); err != nil {
+	if err := h.workerManager.RemoveWorker(int(req.CameraId)); err != nil {
 		return &pb.RemoveWorkerResponse{
 			Success: false,
 			Error:   err.Error(),

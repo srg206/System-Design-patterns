@@ -1,6 +1,6 @@
 module runner_scheduler
 
-go 1.25.3
+go 1.24.10
 
 require (
 	github.com/segmentio/kafka-go v0.4.49

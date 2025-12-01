@@ -21,8 +21,8 @@ INSERT INTO node_worker (
 `
 
 type CreateNodeWorkerParams struct {
-	NodeID   string `json:"node_id"`
-	WorkerID int32  `json:"worker_id"`
+	NodeID   int32 `json:"node_id"`
+	WorkerID int32 `json:"worker_id"`
 }
 
 func (q *Queries) CreateNodeWorker(ctx context.Context, arg CreateNodeWorkerParams) (NodeWorker, error) {
@@ -103,7 +103,7 @@ LIMIT $1
 `
 
 type GetLeastLoadedNodesRow struct {
-	NodeID      string `json:"node_id"`
+	NodeID      int32  `json:"node_id"`
 	Addr        string `json:"addr"`
 	WorkerCount int64  `json:"worker_count"`
 }

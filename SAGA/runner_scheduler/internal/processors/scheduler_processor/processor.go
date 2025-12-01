@@ -2,6 +2,7 @@ package scheduler_processor
 
 import (
 	"context"
+	"fmt"
 	"math"
 
 	"runner_scheduler/internal/infrastructure/repository/queries/worker"
@@ -33,19 +34,23 @@ func (p *Processor) Run(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		workerDistribuition := culculateWorkersDistribution(nodes, int32(WorkerBatchSize))
-
+		workerDistribuition := culculateWorkersDistribution(nodes, len(workers))
+		fmt.Println("workerDistribuition", workerDistribuition)
+		fmt.Println("workers", workers)
+		fmt.Println("nodes", nodes)
 		workerId := 0
 		for nodeId, workersToAdd := range workerDistribuition {
 			for i := 0; i < workersToAdd; i++ {
-				err := p.runnerClient.StartWorker(ctx, workers[workerId].CameraID, nodes[nodeId].Addr)
+				err := p.runnerClient.StartWorker(ctx, nodes[nodeId].Addr, workers[workerId].CameraID, workers[workerId].Url)
 				if err != nil {
 					return err
 				}
+				fmt.Println("StartWorker", nodes[nodeId].Addr, workers[workerId].CameraID, workers[workerId].Url)
 				_, err = p.repo.CreateNodeWorker(ctx, worker.CreateNodeWorkerParams{
 					NodeID:   nodes[nodeId].NodeID,
 					WorkerID: workers[workerId].ID,
 				})
+				fmt.Println("CreateNodeWorker", nodes[nodeId].NodeID, workers[workerId].ID)
 				if err != nil {
 					return err
 				}
@@ -53,6 +58,7 @@ func (p *Processor) Run(ctx context.Context) error {
 					Status: "running",
 					ID:     workers[workerId].ID,
 				})
+				fmt.Println("UpdateWorkerStatus", workers[workerId].ID)
 				if err != nil {
 					return err
 				}
@@ -64,7 +70,7 @@ func (p *Processor) Run(ctx context.Context) error {
 	return err
 }
 
-func culculateWorkersDistribution(nodes []worker.GetLeastLoadedNodesRow, workersToAdd int32) map[int]int {
+func culculateWorkersDistribution(nodes []worker.GetLeastLoadedNodesRow, workersToAdd int) map[int]int {
 
 	avgWorkersCount := avgWorkersCount(nodes, workersToAdd)
 	workerDistribuition := make(map[int]int)
@@ -76,15 +82,15 @@ func culculateWorkersDistribution(nodes []worker.GetLeastLoadedNodesRow, workers
 			addWorkers = int(restWorkersToAdd)
 		}
 		workerDistribuition[id] = addWorkers
-		restWorkersToAdd -= int32(addWorkers)
+		restWorkersToAdd -= addWorkers
 	}
 	return workerDistribuition
 }
 
-func avgWorkersCount(nodes []worker.GetLeastLoadedNodesRow, workersToAdd int32) int32 {
-	totalWorkersCount := int(workersToAdd)
+func avgWorkersCount(nodes []worker.GetLeastLoadedNodesRow, workersToAdd int) int {
+	totalWorkersCount := workersToAdd
 	for _, node := range nodes {
 		totalWorkersCount += int(node.WorkerCount)
 	}
-	return int32(math.Ceil(float64(totalWorkersCount) / float64(len(nodes))))
+	return int(math.Ceil(float64(totalWorkersCount) / float64(len(nodes))))
 }

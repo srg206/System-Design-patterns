@@ -23,7 +23,7 @@ const (
 
 type StartWorkerRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	CameraId      string                 `protobuf:"bytes,1,opt,name=camera_id,json=cameraId,proto3" json:"camera_id,omitempty"`
+	CameraId      int32                  `protobuf:"varint,1,opt,name=camera_id,json=cameraId,proto3" json:"camera_id,omitempty"`
 	Url           string                 `protobuf:"bytes,2,opt,name=url,proto3" json:"url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -59,11 +59,11 @@ func (*StartWorkerRequest) Descriptor() ([]byte, []int) {
 	return file_runner_v1_runner_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *StartWorkerRequest) GetCameraId() string {
+func (x *StartWorkerRequest) GetCameraId() int32 {
 	if x != nil {
 		return x.CameraId
 	}
-	return ""
+	return 0
 }
 
 func (x *StartWorkerRequest) GetUrl() string {
@@ -127,7 +127,7 @@ func (x *StartWorkerResponse) GetError() string {
 
 type RemoveWorkerRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	CameraId      string                 `protobuf:"bytes,1,opt,name=camera_id,json=cameraId,proto3" json:"camera_id,omitempty"`
+	CameraId      int32                  `protobuf:"varint,1,opt,name=camera_id,json=cameraId,proto3" json:"camera_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -162,11 +162,11 @@ func (*RemoveWorkerRequest) Descriptor() ([]byte, []int) {
 	return file_runner_v1_runner_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *RemoveWorkerRequest) GetCameraId() string {
+func (x *RemoveWorkerRequest) GetCameraId() int32 {
 	if x != nil {
 		return x.CameraId
 	}
-	return ""
+	return 0
 }
 
 type RemoveWorkerResponse struct {
@@ -227,13 +227,13 @@ const file_runner_v1_runner_proto_rawDesc = "" +
 	"\n" +
 	"\x16runner/v1/runner.proto\x12\trunner.v1\"C\n" +
 	"\x12StartWorkerRequest\x12\x1b\n" +
-	"\tcamera_id\x18\x01 \x01(\tR\bcameraId\x12\x10\n" +
+	"\tcamera_id\x18\x01 \x01(\x05R\bcameraId\x12\x10\n" +
 	"\x03url\x18\x02 \x01(\tR\x03url\"E\n" +
 	"\x13StartWorkerResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x14\n" +
 	"\x05error\x18\x02 \x01(\tR\x05error\"2\n" +
 	"\x13RemoveWorkerRequest\x12\x1b\n" +
-	"\tcamera_id\x18\x01 \x01(\tR\bcameraId\"F\n" +
+	"\tcamera_id\x18\x01 \x01(\x05R\bcameraId\"F\n" +
 	"\x14RemoveWorkerResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x14\n" +
 	"\x05error\x18\x02 \x01(\tR\x05error2\xae\x01\n" +

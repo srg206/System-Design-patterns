@@ -74,7 +74,7 @@ func (uc *UseCase) ProcessScenarioOutboxMessages(ctx context.Context, topic stri
 	if len(outboxRecords) == 0 {
 		return nil
 	}
-
+	fmt.Println(outboxRecords)
 	messages := make([]*kafka.Message, 0, len(outboxRecords))
 	for _, record := range outboxRecords {
 		headers := make(map[string][]byte)

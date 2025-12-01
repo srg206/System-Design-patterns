@@ -14,6 +14,6 @@ type Repository interface {
 }
 
 type RunnerClient interface {
-	StartWorker(ctx context.Context, cameraID int32, url string) error
-	RemoveWorker(ctx context.Context, cameraID int32, url string) error
+	StartWorker(ctx context.Context, addr string, cameraID int32, url string) error
+	RemoveWorker(ctx context.Context, addr string, cameraID int32, url string) error
 }

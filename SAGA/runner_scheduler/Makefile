@@ -6,10 +6,10 @@ YELLOW := \033[0;33m
 NC     := \033[0m # No Color
 
 # Захардкоженные переменные для БД
-DB_USER := scheduler_user
-DB_PASSWORD := scheduler_password
+DB_USER := postgres
+DB_PASSWORD := postgres
 DB_HOST := localhost
-DB_PORT := 5433
+DB_PORT := 5434
 DB_NAME := runner_scheduler
 DB_URL := postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=disable
 

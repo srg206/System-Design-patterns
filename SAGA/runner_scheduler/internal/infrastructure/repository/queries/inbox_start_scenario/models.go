@@ -8,6 +8,12 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type HeartbeatEvent struct {
+	NodeID    int32            `json:"node_id"`
+	CameraID  string           `json:"camera_id"`
+	UpdatedAt pgtype.Timestamp `json:"updated_at"`
+}
+
 // Inbox pattern table for idempotent message processing in SAGA (start scenario events)
 type InboxStartScenario struct {
 	// Unique identifier from the outbox message (serves as primary key for idempotency)
@@ -27,14 +33,14 @@ type InboxStartScenario struct {
 }
 
 type Node struct {
-	ID        string           `json:"id"`
+	ID        int32            `json:"id"`
 	Addr      string           `json:"addr"`
 	CreatedAt pgtype.Timestamp `json:"created_at"`
 }
 
 type NodeWorker struct {
 	ID         int32            `json:"id"`
-	NodeID     string           `json:"node_id"`
+	NodeID     int32            `json:"node_id"`
 	WorkerID   int32            `json:"worker_id"`
 	AssignedAt pgtype.Timestamp `json:"assigned_at"`
 }

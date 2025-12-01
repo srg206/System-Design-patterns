@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS worker (
 
 -- Node table (runner instances)
 CREATE TABLE IF NOT EXISTS node (
-    id TEXT PRIMARY KEY,
+    id INTEGER PRIMARY KEY,
     addr TEXT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -39,8 +39,17 @@ CREATE TABLE IF NOT EXISTS node (
 -- Node Worker table (assigns workers to nodes)
 CREATE TABLE IF NOT EXISTS node_worker (
     id SERIAL PRIMARY KEY,
-    node_id TEXT NOT NULL REFERENCES node(id) ON DELETE CASCADE,
+    node_id INTEGER NOT NULL REFERENCES node(id) ON DELETE CASCADE,
     worker_id INTEGER NOT NULL REFERENCES worker(id) ON DELETE CASCADE,
     assigned_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(node_id, worker_id)
 );
+
+-- Heartbeat events table
+CREATE TABLE IF NOT EXISTS heartbeat_events (
+    node_id INTEGER NOT NULL,
+    camera_id TEXT NOT NULL,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_heartbeat_events_camera_id ON heartbeat_events (camera_id);

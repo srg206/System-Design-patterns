@@ -19,6 +19,7 @@ func NewPool(ctx context.Context, dbConfig config.DatabaseConfig, poolConfig con
 		dbConfig.Name,
 	)
 
+	fmt.Println(dsn)
 	poolCfg, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse database config: %w", err)

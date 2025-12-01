@@ -3,6 +3,7 @@ package worker_manager
 import (
 	"fmt"
 	"runner/internal/infrastructure/workers/obtain_frame_worker"
+	"sort"
 	"sync"
 )
 
@@ -55,6 +56,19 @@ func (wm *WorkerManager) RemoveWorker(cameraID int) error {
 		delete(wm.workers, cameraID)
 	}
 	return nil
+}
+
+func (wm *WorkerManager) ActiveCameraIDs() []int {
+	wm.mu.Lock()
+	defer wm.mu.Unlock()
+
+	cameraIDs := make([]int, 0, len(wm.workers))
+	for id := range wm.workers {
+		cameraIDs = append(cameraIDs, id)
+	}
+
+	sort.Ints(cameraIDs)
+	return cameraIDs
 }
 
 func (wm *WorkerManager) Close() {

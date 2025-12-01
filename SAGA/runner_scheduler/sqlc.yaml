@@ -28,4 +28,18 @@ sql:
         emit_exact_table_names: false
         emit_empty_slices: true
         emit_pointers_for_null_types: true
+  - engine: "postgresql"
+    queries: "queries/heartbeat_queries.sql"
+    schema: "schema.sql"
+    gen:
+      go:
+        package: "heartbeat"
+        out: "internal/infrastructure/repository/queries/heartbeat"
+        sql_package: "pgx/v5"
+        emit_json_tags: true
+        emit_prepared_queries: false
+        emit_interface: true
+        emit_exact_table_names: false
+        emit_empty_slices: true
+        emit_pointers_for_null_types: true
 

@@ -81,14 +81,14 @@ func Load() (*Config, error) {
 
 	cfg.Database.Host = getEnv("DB_HOST", "localhost")
 
-	dbPort, err := getEnvAsInt("DB_PORT", 5433)
+	dbPort, err := getEnvAsInt("DB_PORT", 5434)
 	if err != nil {
 		return nil, fmt.Errorf("invalid DB_PORT: %w", err)
 	}
 	cfg.Database.Port = dbPort
 
-	cfg.Database.User = getEnv("DB_USER", "scheduler_user")
-	cfg.Database.Password = getEnv("DB_PASSWORD", "scheduler_password")
+	cfg.Database.User = getEnv("DB_USER", "postgres")
+	cfg.Database.Password = getEnv("DB_PASSWORD", "postgres")
 	cfg.Database.Name = getEnv("DB_NAME", "runner_scheduler")
 
 	// Load Pool configuration
@@ -134,19 +134,23 @@ func Load() (*Config, error) {
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return strings.TrimSpace(value)
+		fmt.Printf("%s: %s \n", key, value)
 	}
+	fmt.Printf("%s: %s \n", key, defaultValue)
 	return defaultValue
 }
 
 func getEnvAsInt(key string, defaultValue int) (int, error) {
 	valueStr := os.Getenv(key)
 	if valueStr == "" {
+		fmt.Printf("%s: %s\n", key, valueStr)
 		return defaultValue, nil
 	}
 	value, err := strconv.Atoi(strings.TrimSpace(valueStr))
 	if err != nil {
 		return 0, err
 	}
+	fmt.Printf("%s: %s\n", key, value)
 	return value, nil
 }
 

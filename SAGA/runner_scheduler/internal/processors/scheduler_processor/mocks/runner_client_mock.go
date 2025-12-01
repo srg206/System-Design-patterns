@@ -25,7 +25,7 @@ func NewRunnerClientMock() *RunnerClientMock {
 	}
 }
 
-func (r *RunnerClientMock) StartWorker(ctx context.Context, cameraID int32, url string) error {
+func (r *RunnerClientMock) StartWorker(ctx context.Context, addr string, cameraID int32, url string) error {
 	if r.StartWorkerErr != nil {
 		return r.StartWorkerErr
 	}
@@ -35,7 +35,7 @@ func (r *RunnerClientMock) StartWorker(ctx context.Context, cameraID int32, url 
 	return nil
 }
 
-func (r *RunnerClientMock) RemoveWorker(ctx context.Context, cameraID int32, url string) error {
+func (r *RunnerClientMock) RemoveWorker(ctx context.Context, addr string, cameraID int32, url string) error {
 	if r.RemoveWorkerErr != nil {
 		return r.RemoveWorkerErr
 	}

@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -51,6 +53,10 @@ type PoolConfig struct {
 }
 
 func Load() (*Config, error) {
+	// Load .env file if exists (ignores error if file not found)
+	_ = godotenv.Load("/app/.env")
+	_ = godotenv.Load("app.env") // fallback for local dev
+
 	cfg := &Config{}
 
 	apiPort, err := getEnvAsInt("API_PORT", 3000)
@@ -73,8 +79,6 @@ func Load() (*Config, error) {
 
 	cfg.Producer.KafkaUsername = getEnv("KAFKA_USERNAME", "")
 	cfg.Producer.KafkaPassword = getEnv("KAFKA_PASSWORD", "")
-	cfg.Producer.KafkaAnswersTopic = getEnv("KAFKA_ANSWERS_TOPIC", "answers")
-	cfg.Producer.KafkaResultsTopic = getEnv("KAFKA_RESULTS_TOPIC", "results")
 
 	cfg.Database.Host = getEnv("DB_HOST", "localhost")
 
@@ -84,9 +88,9 @@ func Load() (*Config, error) {
 	}
 	cfg.Database.Port = dbPort
 
-	cfg.Database.User = getEnv("DB_USER", "user")
-	cfg.Database.Password = getEnv("DB_PASSWORD", "password")
-	cfg.Database.Name = getEnv("DB_NAME", "db")
+	cfg.Database.User = getEnv("DB_USER", "postgres")
+	cfg.Database.Password = getEnv("DB_PASSWORD", "postgres")
+	cfg.Database.Name = getEnv("DB_NAME", "init_scenario")
 
 	// Load Pool configuration
 	maxConns, err := getEnvAsInt("DB_POOL_MAX_CONNS", 25)

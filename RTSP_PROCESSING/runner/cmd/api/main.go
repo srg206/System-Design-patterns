@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"net"
+	"strings"
 	"time"
 
 	"google.golang.org/grpc"
@@ -12,10 +14,14 @@ import (
 	"runner/internal/env"
 	"runner/internal/grpc_api/v1/global_handler"
 	"runner/internal/infrastructure/inference_service"
+	"runner/internal/infrastructure/kafka"
 	"runner/internal/infrastructure/s3"
 	"runner/internal/infrastructure/worker_manager"
+	loggerpkg "runner/pkg/logger"
 	pb "runner/proto/server/runner/v1"
 )
+
+const NodeId string = "1" // TODO: Get from config
 
 func loggingInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	start := time.Now()
@@ -31,8 +37,64 @@ func loggingInterceptor(ctx context.Context, req interface{}, info *grpc.UnarySe
 	return resp, err
 }
 
+func parseBrokers(raw string) []string {
+	parts := strings.Split(raw, ",")
+	brokers := make([]string, 0, len(parts))
+
+	for _, part := range parts {
+		if trimmed := strings.TrimSpace(part); trimmed != "" {
+			brokers = append(brokers, trimmed)
+		}
+	}
+
+	return brokers
+}
+
+func startHeartbeat(ctx context.Context, wm *worker_manager.WorkerManager, producer kafka.Producer, topic string) {
+	go func() {
+		ticker := time.NewTicker(15 * time.Second)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				cameraIDs := wm.ActiveCameraIDs()
+				payload, err := json.Marshal(map[string]interface{}{
+					"NodeId":     NodeId,
+					"camera_ids": cameraIDs,
+				})
+				if err != nil {
+					log.Printf("failed to marshal heartbeat payload: %v", err)
+					continue
+				}
+
+				msg := kafka.NewMessage(topic, nil, payload, nil)
+
+				sendCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+				err = producer.SendMessage(sendCtx, msg)
+				cancel()
+				if err != nil {
+					log.Printf("failed to send heartbeat: %v", err)
+				}
+			}
+		}
+	}()
+}
+
 func main() {
 	cfg := env.LoadEnv()
+
+	zapLogger, err := loggerpkg.InitLogger()
+	if err != nil {
+		log.Fatalf("failed to init logger: %v", err)
+	}
+	defer func() {
+		if err := zapLogger.Sync(); err != nil {
+			log.Printf("failed to sync logger: %v", err)
+		}
+	}()
 
 	inferenceService, err := inference_service.New(inference_service.Config{
 		Address: cfg.Inference.Address,
@@ -56,6 +118,34 @@ func main() {
 	workerManager := worker_manager.NewWorkerManager()
 	defer workerManager.Close()
 
+	kafkaBrokers := parseBrokers(env.GetEnv("KAFKA_BROKERS", "localhost:9092"))
+	if len(kafkaBrokers) == 0 {
+		kafkaBrokers = []string{"localhost:9092"}
+	}
+	kafkaConfig := kafka.DefaultConfig(kafkaBrokers...)
+
+	heartbeatTopic := env.GetEnv("RUNNER_HEARTBEAT_TOPIC", "runner-heartbeat")
+	ensureCtx, cancelEnsure := context.WithTimeout(context.Background(), 10*time.Second)
+	if err := kafka.EnsureTopic(ensureCtx, kafkaBrokers, heartbeatTopic, 1, 1); err != nil {
+		cancelEnsure()
+		log.Fatalf("failed to ensure heartbeat topic: %v", err)
+	}
+	cancelEnsure()
+
+	producer, err := kafka.NewKafkaProducer(kafkaConfig, zapLogger)
+	if err != nil {
+		log.Fatalf("failed to create kafka producer: %v", err)
+	}
+	defer func() {
+		if err := producer.Close(); err != nil {
+			log.Printf("failed to close kafka producer: %v", err)
+		}
+	}()
+
+	heartbeatCtx, cancelHeartbeat := context.WithCancel(context.Background())
+	defer cancelHeartbeat()
+	startHeartbeat(heartbeatCtx, workerManager, producer, heartbeatTopic)
+
 	lis, err := net.Listen("tcp", ":50052")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
@@ -70,6 +160,7 @@ func main() {
 
 	log.Printf("server listening at %v", lis.Addr())
 	if err := s.Serve(lis); err != nil {
+		cancelHeartbeat()
 		log.Fatalf("failed to serve: %v", err)
 	}
 }

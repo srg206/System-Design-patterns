@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"runner_scheduler/internal/infrastructure/repository/queries/heartbeat"
 	"runner_scheduler/internal/infrastructure/repository/queries/inbox_start_scenario"
 	"runner_scheduler/internal/infrastructure/repository/queries/worker"
 	modelerror "runner_scheduler/internal/models/error"
@@ -25,6 +26,7 @@ type Repository struct {
 	dbPool                    *pgxpool.Pool
 	inboxStartScenarioQueries *inbox_start_scenario.Queries
 	workerQueries             *worker.Queries
+	heartbeatQueries          *heartbeat.Queries
 }
 
 func NewRepository(dbPool *pgxpool.Pool) *Repository {
@@ -32,6 +34,7 @@ func NewRepository(dbPool *pgxpool.Pool) *Repository {
 		dbPool:                    dbPool,
 		inboxStartScenarioQueries: inbox_start_scenario.New(dbPool),
 		workerQueries:             worker.New(dbPool),
+		heartbeatQueries:          heartbeat.New(dbPool),
 	}
 }
 
@@ -62,6 +65,14 @@ func (r *Repository) getWorkerQueries(ctx context.Context) worker.Querier {
 		return r.workerQueries.WithTx(tx)
 	}
 	return r.workerQueries
+}
+
+func (r *Repository) getHeartbeatQueries(ctx context.Context) heartbeat.Querier {
+	tx := extractTx(ctx)
+	if tx != nil {
+		return r.heartbeatQueries.WithTx(tx)
+	}
+	return r.heartbeatQueries
 }
 
 func (r *Repository) CreateInboxStartScenario(ctx context.Context, arg inbox_start_scenario.CreateInboxStartScenarioParams) (inbox_start_scenario.InboxStartScenario, error) {
@@ -117,6 +128,10 @@ func (r *Repository) GetOldestWorkersByStatus(ctx context.Context, status string
 
 func (r *Repository) GetLeastLoadedNodes(ctx context.Context, limit int32) ([]worker.GetLeastLoadedNodesRow, error) {
 	return r.getWorkerQueries(ctx).GetLeastLoadedNodes(ctx, limit)
+}
+
+func (r *Repository) UpsertHeartbeat(ctx context.Context, arg heartbeat.UpsertHeartbeatParams) error {
+	return r.getHeartbeatQueries(ctx).UpsertHeartbeat(ctx, arg)
 }
 
 // WithinTransaction executes a function within a database transaction

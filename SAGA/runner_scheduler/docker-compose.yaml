@@ -3,7 +3,7 @@ version: '3.8'
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: runner-scheduler-postgres
+    container_name: runner-scheduler-local-postgres
     ports:
       - "5433:5432"
     environment:
@@ -19,6 +19,47 @@ services:
       retries: 5
     networks:
       - scheduler-network
+
+  consumer:
+    build:
+      context: .
+      dockerfile: deploy/consumer.Dockerfile
+    container_name: runner-scheduler-consumer
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DB_HOST=${DB_HOST:-postgres}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_USER=${DB_USER:-scheduler_user}
+      - DB_PASSWORD=${DB_PASSWORD:-scheduler_password}
+      - DB_NAME=${DB_NAME:-runner_scheduler}
+      - KAFKA_BROKERS=${KAFKA_BROKERS:-host.docker.internal:9092,host.docker.internal:9093}
+      - KAFKA_USERNAME=${KAFKA_USERNAME:-}
+      - KAFKA_PASSWORD=${KAFKA_PASSWORD:-}
+      - KAFKA_CONSUMER_GROUP=${KAFKA_CONSUMER_GROUP:-runner_scheduler_group}
+      - KAFKA_INBOX_INFERENCE_TOPIC=${KAFKA_INBOX_INFERENCE_TOPIC:-inbox_inference}
+    networks:
+      - scheduler-network
+    restart: unless-stopped
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: deploy/scheduler.Dockerfile
+    container_name: runner-scheduler-scheduler
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DB_HOST=${DB_HOST:-postgres}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_USER=${DB_USER:-scheduler_user}
+      - DB_PASSWORD=${DB_PASSWORD:-scheduler_password}
+      - DB_NAME=${DB_NAME:-runner_scheduler}
+    networks:
+      - scheduler-network
+    restart: unless-stopped
 
 volumes:
   postgres-data:

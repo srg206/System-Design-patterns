@@ -16,12 +16,13 @@ func New() *Client {
 	return &Client{}
 }
 
-func (c *Client) StartWorker(ctx context.Context, cameraID int32, url string) error {
-	conn, err := grpc.NewClient(url, grpc.WithTransportCredentials(insecure.NewCredentials()))
+func (c *Client) StartWorker(ctx context.Context, addr string, cameraID int32, url string) error {
+	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return fmt.Errorf("grpc dial: %w", err)
 	}
 	defer conn.Close()
+	fmt.Printf("cameraID: %d, url: %s\n", cameraID, url)
 
 	client := pb.NewRunnerServiceClient(conn)
 	resp, err := client.StartWorker(ctx, &pb.StartWorkerRequest{
@@ -37,8 +38,8 @@ func (c *Client) StartWorker(ctx context.Context, cameraID int32, url string) er
 	return nil
 }
 
-func (c *Client) RemoveWorker(ctx context.Context, cameraID int32, url string) error {
-	conn, err := grpc.NewClient(url, grpc.WithTransportCredentials(insecure.NewCredentials()))
+func (c *Client) RemoveWorker(ctx context.Context, addr string, cameraID int32, url string) error {
+	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return fmt.Errorf("grpc dial: %w", err)
 	}
