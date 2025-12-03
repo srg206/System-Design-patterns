@@ -6,10 +6,14 @@ package inbox_start_scenario
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
 	CreateInboxStartScenario(ctx context.Context, arg CreateInboxStartScenarioParams) (InboxStartScenario, error)
+	DeleteInboxStartScenarios(ctx context.Context, dollar_1 []pgtype.UUID) error
+	GetInboxStartScenariosByScenarioUUIDs(ctx context.Context, dollar_1 []pgtype.UUID) ([]InboxStartScenario, error)
 }
 
 var _ Querier = (*Queries)(nil)

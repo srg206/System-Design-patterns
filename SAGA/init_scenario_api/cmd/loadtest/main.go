@@ -51,7 +51,7 @@ func main() {
 				res := result{cameraID: cameraID}
 
 				body, err := json.Marshal(payload{
-					CameraID: cameraID,
+					CameraID: cameraID + 3,
 					URL:      "rtsp://localhost:8554/mystream",
 				})
 				if err != nil {

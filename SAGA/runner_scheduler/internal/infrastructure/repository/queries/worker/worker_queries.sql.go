@@ -75,12 +75,12 @@ func (q *Queries) CreateWorker(ctx context.Context, arg CreateWorkerParams) (Wor
 	return i, err
 }
 
-const deleteNodeWorkerByWorkerID = `-- name: DeleteNodeWorkerByWorkerID :exec
-DELETE FROM node_worker WHERE worker_id = $1
+const deleteNodeWorkersByWorkerIDs = `-- name: DeleteNodeWorkersByWorkerIDs :exec
+DELETE FROM node_worker WHERE worker_id = ANY($1::int4[])
 `
 
-func (q *Queries) DeleteNodeWorkerByWorkerID(ctx context.Context, workerID int32) error {
-	_, err := q.db.Exec(ctx, deleteNodeWorkerByWorkerID, workerID)
+func (q *Queries) DeleteNodeWorkersByWorkerIDs(ctx context.Context, dollar_1 []int32) error {
+	_, err := q.db.Exec(ctx, deleteNodeWorkersByWorkerIDs, dollar_1)
 	return err
 }
 
@@ -93,10 +93,20 @@ func (q *Queries) DeleteWorker(ctx context.Context, id int32) error {
 	return err
 }
 
+const deleteWorkersByIDs = `-- name: DeleteWorkersByIDs :exec
+DELETE FROM worker WHERE id = ANY($1::int4[])
+`
+
+func (q *Queries) DeleteWorkersByIDs(ctx context.Context, dollar_1 []int32) error {
+	_, err := q.db.Exec(ctx, deleteWorkersByIDs, dollar_1)
+	return err
+}
+
 const getLeastLoadedNodes = `-- name: GetLeastLoadedNodes :many
 SELECT n.id as node_id, n.addr, COUNT(nw.worker_id) as worker_count
 FROM node n
 LEFT JOIN node_worker nw ON n.id = nw.node_id
+WHERE n.state IS DISTINCT FROM 'error'
 GROUP BY n.id, n.addr
 ORDER BY worker_count ASC
 LIMIT $1
@@ -182,6 +192,38 @@ func (q *Queries) GetWorkerByCameraID(ctx context.Context, cameraID int32) (Work
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const getWorkersByStatus = `-- name: GetWorkersByStatus :many
+SELECT id, camera_id, scenario_uuid, url, status, created_at, updated_at FROM worker WHERE status = $1
+`
+
+func (q *Queries) GetWorkersByStatus(ctx context.Context, status string) ([]Worker, error) {
+	rows, err := q.db.Query(ctx, getWorkersByStatus, status)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Worker{}
+	for rows.Next() {
+		var i Worker
+		if err := rows.Scan(
+			&i.ID,
+			&i.CameraID,
+			&i.ScenarioUuid,
+			&i.Url,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const updateWorkerStatus = `-- name: UpdateWorkerStatus :one

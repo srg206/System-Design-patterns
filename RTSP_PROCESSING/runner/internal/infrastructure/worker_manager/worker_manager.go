@@ -26,9 +26,21 @@ func (wm *WorkerManager) AddWorker(worker *obtain_frame_worker.ObtainFrameWorker
 		return fmt.Errorf("worker already exists")
 	}
 
+	if err := worker.Init(); err != nil {
+		return fmt.Errorf("failed to init worker: %w", err)
+	}
+
 	wm.workers[worker.CameraID] = worker
-	worker.Init()
-	go worker.Run()
+
+	go func() {
+		if err := worker.Run(); err != nil {
+			fmt.Printf("worker %d failed: %v, removing from manager\n", worker.CameraID, err)
+			wm.mu.Lock()
+			delete(wm.workers, worker.CameraID)
+			wm.mu.Unlock()
+			worker.Close()
+		}
+	}()
 
 	return nil
 }

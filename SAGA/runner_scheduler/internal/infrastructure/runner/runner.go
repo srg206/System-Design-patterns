@@ -22,7 +22,7 @@ func (c *Client) StartWorker(ctx context.Context, addr string, cameraID int32, u
 		return fmt.Errorf("grpc dial: %w", err)
 	}
 	defer conn.Close()
-	fmt.Printf("cameraID: %d, url: %s\n", cameraID, url)
+	fmt.Printf("cameraID: %d, url: %s  NODE: %s\n", cameraID, url, addr)
 
 	client := pb.NewRunnerServiceClient(conn)
 	resp, err := client.StartWorker(ctx, &pb.StartWorkerRequest{

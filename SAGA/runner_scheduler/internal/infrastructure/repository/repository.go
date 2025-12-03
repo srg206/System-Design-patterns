@@ -7,8 +7,10 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"runner_scheduler/internal/infrastructure/repository/queries/error_marker"
 	"runner_scheduler/internal/infrastructure/repository/queries/heartbeat"
 	"runner_scheduler/internal/infrastructure/repository/queries/inbox_start_scenario"
 	"runner_scheduler/internal/infrastructure/repository/queries/worker"
@@ -27,6 +29,7 @@ type Repository struct {
 	inboxStartScenarioQueries *inbox_start_scenario.Queries
 	workerQueries             *worker.Queries
 	heartbeatQueries          *heartbeat.Queries
+	errorMarkerQueries        *error_marker.Queries
 }
 
 func NewRepository(dbPool *pgxpool.Pool) *Repository {
@@ -35,6 +38,7 @@ func NewRepository(dbPool *pgxpool.Pool) *Repository {
 		inboxStartScenarioQueries: inbox_start_scenario.New(dbPool),
 		workerQueries:             worker.New(dbPool),
 		heartbeatQueries:          heartbeat.New(dbPool),
+		errorMarkerQueries:        error_marker.New(dbPool),
 	}
 }
 
@@ -75,6 +79,14 @@ func (r *Repository) getHeartbeatQueries(ctx context.Context) heartbeat.Querier 
 	return r.heartbeatQueries
 }
 
+func (r *Repository) getErrorMarkerQueries(ctx context.Context) error_marker.Querier {
+	tx := extractTx(ctx)
+	if tx != nil {
+		return r.errorMarkerQueries.WithTx(tx)
+	}
+	return r.errorMarkerQueries
+}
+
 func (r *Repository) CreateInboxStartScenario(ctx context.Context, arg inbox_start_scenario.CreateInboxStartScenarioParams) (inbox_start_scenario.InboxStartScenario, error) {
 	result, err := r.getInboxStartScenarioQueries(ctx).CreateInboxStartScenario(ctx, arg)
 	if err != nil {
@@ -85,6 +97,22 @@ func (r *Repository) CreateInboxStartScenario(ctx context.Context, arg inbox_sta
 		return result, err
 	}
 	return result, nil
+}
+
+func (r *Repository) GetInboxStartScenariosByScenarioUUIDs(ctx context.Context, scenarioUUIDs []pgtype.UUID) ([]inbox_start_scenario.InboxStartScenario, error) {
+	if len(scenarioUUIDs) == 0 {
+		return []inbox_start_scenario.InboxStartScenario{}, nil
+	}
+
+	return r.getInboxStartScenarioQueries(ctx).GetInboxStartScenariosByScenarioUUIDs(ctx, scenarioUUIDs)
+}
+
+func (r *Repository) DeleteInboxStartScenarios(ctx context.Context, scenarioUUIDs []pgtype.UUID) error {
+	if len(scenarioUUIDs) == 0 {
+		return nil
+	}
+
+	return r.getInboxStartScenarioQueries(ctx).DeleteInboxStartScenarios(ctx, scenarioUUIDs)
 }
 
 func (r *Repository) CreateWorker(ctx context.Context, arg worker.CreateWorkerParams) (worker.Worker, error) {
@@ -115,8 +143,20 @@ func (r *Repository) DeleteWorker(ctx context.Context, id int32) error {
 	return r.getWorkerQueries(ctx).DeleteWorker(ctx, id)
 }
 
-func (r *Repository) DeleteNodeWorkerByWorkerID(ctx context.Context, workerID int32) error {
-	return r.getWorkerQueries(ctx).DeleteNodeWorkerByWorkerID(ctx, workerID)
+func (r *Repository) DeleteNodeWorkersByWorkerIDs(ctx context.Context, workerIDs []int32) error {
+	if len(workerIDs) == 0 {
+		return nil
+	}
+
+	return r.getWorkerQueries(ctx).DeleteNodeWorkersByWorkerIDs(ctx, workerIDs)
+}
+
+func (r *Repository) DeleteWorkersByIDs(ctx context.Context, workerIDs []int32) error {
+	if len(workerIDs) == 0 {
+		return nil
+	}
+
+	return r.getWorkerQueries(ctx).DeleteWorkersByIDs(ctx, workerIDs)
 }
 
 func (r *Repository) GetOldestWorkersByStatus(ctx context.Context, status string, limit int32) ([]worker.Worker, error) {
@@ -126,12 +166,36 @@ func (r *Repository) GetOldestWorkersByStatus(ctx context.Context, status string
 	})
 }
 
+func (r *Repository) GetWorkersByStatus(ctx context.Context, status string) ([]worker.Worker, error) {
+	return r.getWorkerQueries(ctx).GetWorkersByStatus(ctx, status)
+}
+
 func (r *Repository) GetLeastLoadedNodes(ctx context.Context, limit int32) ([]worker.GetLeastLoadedNodesRow, error) {
 	return r.getWorkerQueries(ctx).GetLeastLoadedNodes(ctx, limit)
 }
 
 func (r *Repository) UpsertHeartbeat(ctx context.Context, arg heartbeat.UpsertHeartbeatParams) error {
 	return r.getHeartbeatQueries(ctx).UpsertHeartbeat(ctx, arg)
+}
+
+func (r *Repository) GetStaleWorkers(ctx context.Context, intervalSeconds int32) ([]error_marker.GetStaleWorkersRow, error) {
+	return r.getErrorMarkerQueries(ctx).GetStaleWorkers(ctx, float64(intervalSeconds))
+}
+
+func (r *Repository) MarkWorkerAsError(ctx context.Context, id int32) error {
+	return r.getErrorMarkerQueries(ctx).MarkWorkerAsError(ctx, id)
+}
+
+func (r *Repository) GetStaleNodes(ctx context.Context, intervalSeconds int32) ([]error_marker.GetStaleNodesRow, error) {
+	return r.getErrorMarkerQueries(ctx).GetStaleNodes(ctx, float64(intervalSeconds))
+}
+
+func (r *Repository) MarkNodeAsError(ctx context.Context, id int32) error {
+	return r.getErrorMarkerQueries(ctx).MarkNodeAsError(ctx, id)
+}
+
+func (r *Repository) GetWorkersWithoutHeartbeat(ctx context.Context) ([]error_marker.GetWorkersWithoutHeartbeatRow, error) {
+	return r.getErrorMarkerQueries(ctx).GetWorkersWithoutHeartbeat(ctx)
 }
 
 // WithinTransaction executes a function within a database transaction

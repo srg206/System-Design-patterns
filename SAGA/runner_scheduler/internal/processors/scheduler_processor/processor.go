@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"strings"
 
 	"runner_scheduler/internal/infrastructure/repository/queries/worker"
 )
@@ -30,10 +31,19 @@ func (p *Processor) Run(ctx context.Context) error {
 			return err
 		}
 
+		if len(workers) == 0 {
+			return nil
+		}
+
 		nodes, err := p.repo.GetLeastLoadedNodes(ctx, int32(WorkerBatchSize))
 		if err != nil {
 			return err
 		}
+
+		if len(nodes) == 0 {
+			return nil
+		}
+
 		workerDistribuition := culculateWorkersDistribution(nodes, len(workers))
 		fmt.Println("workerDistribuition", workerDistribuition)
 		fmt.Println("workers", workers)
@@ -41,8 +51,30 @@ func (p *Processor) Run(ctx context.Context) error {
 		workerId := 0
 		for nodeId, workersToAdd := range workerDistribuition {
 			for i := 0; i < workersToAdd; i++ {
+				if workerId >= len(workers) {
+					return nil
+				}
 				err := p.runnerClient.StartWorker(ctx, nodes[nodeId].Addr, workers[workerId].CameraID, workers[workerId].Url)
 				if err != nil {
+					if strings.Contains(err.Error(), "worker already exists") {
+						fmt.Printf("worker %d already exists on node %s, updating status to running\n", workers[workerId].CameraID, nodes[nodeId].Addr)
+						_, err = p.repo.CreateNodeWorker(ctx, worker.CreateNodeWorkerParams{
+							NodeID:   nodes[nodeId].NodeID,
+							WorkerID: workers[workerId].ID,
+						})
+						if err != nil && !strings.Contains(err.Error(), "duplicate key") {
+							return err
+						}
+						_, err = p.repo.UpdateWorkerStatus(ctx, worker.UpdateWorkerStatusParams{
+							Status: "running",
+							ID:     workers[workerId].ID,
+						})
+						if err != nil {
+							return err
+						}
+						workerId++
+						continue
+					}
 					return err
 				}
 				fmt.Println("StartWorker", nodes[nodeId].Addr, workers[workerId].CameraID, workers[workerId].Url)
@@ -88,6 +120,9 @@ func culculateWorkersDistribution(nodes []worker.GetLeastLoadedNodesRow, workers
 }
 
 func avgWorkersCount(nodes []worker.GetLeastLoadedNodesRow, workersToAdd int) int {
+	if len(nodes) == 0 {
+		return 0
+	}
 	totalWorkersCount := workersToAdd
 	for _, node := range nodes {
 		totalWorkersCount += int(node.WorkerCount)

@@ -48,3 +48,47 @@ func (q *Queries) CreateInboxStartScenario(ctx context.Context, arg CreateInboxS
 	)
 	return i, err
 }
+
+const deleteInboxStartScenarios = `-- name: DeleteInboxStartScenarios :exec
+DELETE FROM inbox_start_scenario
+WHERE scenario_uuid = ANY($1::uuid[])
+`
+
+func (q *Queries) DeleteInboxStartScenarios(ctx context.Context, dollar_1 []pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteInboxStartScenarios, dollar_1)
+	return err
+}
+
+const getInboxStartScenariosByScenarioUUIDs = `-- name: GetInboxStartScenariosByScenarioUUIDs :many
+SELECT outbox_uuid, camera_id, scenario_uuid, url, status, created_at, updated_at
+FROM inbox_start_scenario
+WHERE scenario_uuid = ANY($1::uuid[])
+`
+
+func (q *Queries) GetInboxStartScenariosByScenarioUUIDs(ctx context.Context, dollar_1 []pgtype.UUID) ([]InboxStartScenario, error) {
+	rows, err := q.db.Query(ctx, getInboxStartScenariosByScenarioUUIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []InboxStartScenario{}
+	for rows.Next() {
+		var i InboxStartScenario
+		if err := rows.Scan(
+			&i.OutboxUuid,
+			&i.CameraID,
+			&i.ScenarioUuid,
+			&i.Url,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

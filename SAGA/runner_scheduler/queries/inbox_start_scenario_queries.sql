@@ -7,3 +7,12 @@ INSERT INTO inbox_start_scenario (
 ) VALUES (
     $1, $2, $3, $4
 ) RETURNING *;
+
+-- name: DeleteInboxStartScenarios :exec
+DELETE FROM inbox_start_scenario
+WHERE scenario_uuid = ANY($1::uuid[]);
+
+-- name: GetInboxStartScenariosByScenarioUUIDs :many
+SELECT *
+FROM inbox_start_scenario
+WHERE scenario_uuid = ANY($1::uuid[]);

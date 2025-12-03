@@ -183,7 +183,7 @@ func run() int {
 		}
 	}()
 
-	log.Info("consumer started successfully")
+	log.Info("inbox consumer started successfully")
 
 	cls.Wait()
 

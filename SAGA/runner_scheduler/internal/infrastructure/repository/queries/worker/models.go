@@ -35,6 +35,7 @@ type InboxStartScenario struct {
 type Node struct {
 	ID        int32            `json:"id"`
 	Addr      string           `json:"addr"`
+	State     string           `json:"state"`
 	CreatedAt pgtype.Timestamp `json:"created_at"`
 }
 

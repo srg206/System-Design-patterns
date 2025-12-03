@@ -3,6 +3,7 @@ module runner_scheduler
 go 1.24.10
 
 require (
+	github.com/google/uuid v1.6.0
 	github.com/segmentio/kafka-go v0.4.49
 	google.golang.org/grpc v1.77.0
 	google.golang.org/protobuf v1.36.10

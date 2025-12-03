@@ -42,4 +42,18 @@ sql:
         emit_exact_table_names: false
         emit_empty_slices: true
         emit_pointers_for_null_types: true
+  - engine: "postgresql"
+    queries: "queries/error_marker_queries.sql"
+    schema: "schema.sql"
+    gen:
+      go:
+        package: "error_marker"
+        out: "internal/infrastructure/repository/queries/error_marker"
+        sql_package: "pgx/v5"
+        emit_json_tags: true
+        emit_prepared_queries: false
+        emit_interface: true
+        emit_exact_table_names: false
+        emit_empty_slices: true
+        emit_pointers_for_null_types: true
 

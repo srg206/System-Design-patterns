@@ -11,11 +11,13 @@ import (
 type Querier interface {
 	CreateNodeWorker(ctx context.Context, arg CreateNodeWorkerParams) (NodeWorker, error)
 	CreateWorker(ctx context.Context, arg CreateWorkerParams) (Worker, error)
-	DeleteNodeWorkerByWorkerID(ctx context.Context, workerID int32) error
+	DeleteNodeWorkersByWorkerIDs(ctx context.Context, dollar_1 []int32) error
 	DeleteWorker(ctx context.Context, id int32) error
+	DeleteWorkersByIDs(ctx context.Context, dollar_1 []int32) error
 	GetLeastLoadedNodes(ctx context.Context, limit int32) ([]GetLeastLoadedNodesRow, error)
 	GetOldestWorkersByStatus(ctx context.Context, arg GetOldestWorkersByStatusParams) ([]Worker, error)
 	GetWorkerByCameraID(ctx context.Context, cameraID int32) (Worker, error)
+	GetWorkersByStatus(ctx context.Context, status string) ([]Worker, error)
 	UpdateWorkerStatus(ctx context.Context, arg UpdateWorkerStatusParams) (Worker, error)
 }
 

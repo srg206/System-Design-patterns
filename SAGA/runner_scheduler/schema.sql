@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS worker (
     camera_id INTEGER NOT NULL UNIQUE,
     scenario_uuid UUID NOT NULL,
     url TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'running', 'stopped', 'failed')),
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'running', 'stopped', 'failed', 'error')),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP
 );
@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS worker (
 CREATE TABLE IF NOT EXISTS node (
     id INTEGER PRIMARY KEY,
     addr TEXT NOT NULL,
+    state TEXT NOT NULL DEFAULT 'up' ,    
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

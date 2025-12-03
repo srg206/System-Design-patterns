@@ -2,6 +2,7 @@ package global_handler
 
 import (
 	"context"
+	"log"
 
 	"runner/internal/infrastructure/worker_manager"
 	"runner/internal/infrastructure/workers/obtain_frame_worker"
@@ -29,17 +30,19 @@ func NewRunnerServiceHandler(
 
 func (h *RunnerServiceHandler) StartWorker(ctx context.Context, req *pb.StartWorkerRequest) (*pb.StartWorkerResponse, error) {
 	cameraID := int(req.CameraId)
-
+	log.Printf("starting worker for camera %d (url: %s)", cameraID, req.Url)
 	worker := obtain_frame_worker.ObtainFrameWorkerNew(req.Url, nil, h.inferenceClient, h.s3Client)
 	worker.CameraID = cameraID
 
 	if err := h.workerManager.AddWorker(worker); err != nil {
+		log.Printf("failed to add worker for camera %d (url: %s): %v", cameraID, req.Url, err)
 		return &pb.StartWorkerResponse{
 			Success: false,
 			Error:   err.Error(),
 		}, nil
 	}
 
+	log.Printf("worker for camera %d started successfully", cameraID)
 	return &pb.StartWorkerResponse{
 		Success: true,
 	}, nil

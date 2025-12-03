@@ -17,7 +17,6 @@ import (
 	"runner_scheduler/pkg/database"
 	"runner_scheduler/pkg/logger"
 
-	"github.com/jackc/pgx/v5/pgtype"
 	"go.uber.org/zap"
 )
 
@@ -91,60 +90,63 @@ func run() int {
 				continue
 			}
 
+			// var payload struct {
+			// 	NodeID    int32         `json:"node_id"`
+			// 	CameraIDs []interface{} `json:"camera_ids"`
+			// 	UpdatedAt time.Time     `json:"updated_at"`
+			// }
 			var payload struct {
-				NodeID    int32         `json:"node_id"`
-				CameraIDs []interface{} `json:"camera_ids"`
-				UpdatedAt time.Time     `json:"updated_at"`
+				NodeID    string  `json:"NodeId"`
+				CameraIDs []int32 `json:"camera_ids"`
 			}
 
+			fmt.Println(msg.Value)
 			if err := json.Unmarshal(msg.Value, &payload); err != nil {
 				log.Error("failed to unmarshal message", zap.Error(err))
 				continue
 			}
-
+			fmt.Println(payload)
+			nodeID, err := strconv.ParseInt(payload.NodeID, 10, 32)
+			if err != nil {
+				log.Error("failed to parse node_id", zap.Error(err))
+				continue
+			}
 			if len(payload.CameraIDs) == 0 {
-				log.Warn("empty camera_ids array, skipping")
+				err = repo.UpsertHeartbeat(ctx, heartbeat.UpsertHeartbeatParams{
+					NodeID:   int32(nodeID),
+					CameraID: "",
+				})
+
+				if err != nil {
+					log.Error("failed to save heartbeat to db",
+						zap.Error(err),
+						zap.Int32("node_id", int32(nodeID)),
+						zap.String("camera_id", ""))
+				}
+
+				log.Info("heartbeat processed with empty camera_id",
+					zap.Int32("node_id", int32(nodeID)))
+
 				if err := consumer.CommitMessages(ctx, msg); err != nil {
 					log.Error("failed to commit message", zap.Error(err))
 				}
 				continue
 			}
 
-			updatedAt := payload.UpdatedAt
-			if updatedAt.IsZero() {
-				updatedAt = time.Now()
-			}
-
 			successCount := 0
 			for _, cameraIDRaw := range payload.CameraIDs {
 				var cameraIDStr string
-				switch v := cameraIDRaw.(type) {
-				case string:
-					cameraIDStr = v
-				case float64:
-					cameraIDStr = strconv.Itoa(int(v))
-				case int:
-					cameraIDStr = strconv.Itoa(v)
-				default:
-					log.Error("invalid camera_id type",
-						zap.String("type", fmt.Sprintf("%T", v)),
-						zap.Any("value", v))
-					continue
-				}
+				cameraIDStr = strconv.Itoa(int(cameraIDRaw))
 
 				err = repo.UpsertHeartbeat(ctx, heartbeat.UpsertHeartbeatParams{
-					NodeID:   payload.NodeID,
+					NodeID:   int32(nodeID),
 					CameraID: cameraIDStr,
-					UpdatedAt: pgtype.Timestamp{
-						Time:  updatedAt,
-						Valid: true,
-					},
 				})
 
 				if err != nil {
 					log.Error("failed to save heartbeat to db",
 						zap.Error(err),
-						zap.Int32("node_id", payload.NodeID),
+						zap.Int32("node_id", int32(nodeID)),
 						zap.String("camera_id", cameraIDStr))
 				} else {
 					successCount++
@@ -152,7 +154,7 @@ func run() int {
 			}
 
 			log.Info("heartbeats processed",
-				zap.Int32("node_id", payload.NodeID),
+				zap.Int32("node_id", int32(nodeID)),
 				zap.Int("total", len(payload.CameraIDs)),
 				zap.Int("success", successCount))
 

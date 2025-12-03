@@ -7,13 +7,11 @@ package heartbeat
 
 import (
 	"context"
-
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const upsertHeartbeat = `-- name: UpsertHeartbeat :exec
 INSERT INTO heartbeat_events (node_id, camera_id, updated_at)
-VALUES ($1, $2, $3)
+VALUES ($1, $2, CURRENT_TIMESTAMP)
 ON CONFLICT (camera_id) DO UPDATE
 SET node_id = EXCLUDED.node_id,
     updated_at = EXCLUDED.updated_at
@@ -21,12 +19,11 @@ WHERE heartbeat_events.updated_at < EXCLUDED.updated_at
 `
 
 type UpsertHeartbeatParams struct {
-	NodeID    int32            `json:"node_id"`
-	CameraID  string           `json:"camera_id"`
-	UpdatedAt pgtype.Timestamp `json:"updated_at"`
+	NodeID   int32  `json:"node_id"`
+	CameraID string `json:"camera_id"`
 }
 
 func (q *Queries) UpsertHeartbeat(ctx context.Context, arg UpsertHeartbeatParams) error {
-	_, err := q.db.Exec(ctx, upsertHeartbeat, arg.NodeID, arg.CameraID, arg.UpdatedAt)
+	_, err := q.db.Exec(ctx, upsertHeartbeat, arg.NodeID, arg.CameraID)
 	return err
 }

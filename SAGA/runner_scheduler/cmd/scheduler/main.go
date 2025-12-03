@@ -68,7 +68,7 @@ func run() int {
 		}
 	}()
 
-	log.Info("consumer started successfully")
+	log.Info("scheduler started successfully")
 
 	cls.Wait()
 

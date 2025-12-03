@@ -233,6 +233,9 @@ services:
       KAFKA_INBOX_INFERENCE_TOPIC: ${RUNNER_SCHEDULER_KAFKA_INBOX_INFERENCE_TOPIC:-inbox_inference}
     depends_on:
       - runner-scheduler-postgres
+      - kafka1
+      - kafka2
+      - kafka3
     networks:
       - default
       - kafka-net
@@ -251,6 +254,77 @@ services:
       DB_NAME: ${RUNNER_SCHEDULER_POSTGRES_DB:-runner_scheduler}
     depends_on:
       - runner-scheduler-postgres
+    networks:
+      - default
+      - kafka-net
+    restart: unless-stopped
+
+  runner-scheduler-error-handler:
+    container_name: runner-scheduler-error-handler
+    build:
+      context: ./SAGA/runner_scheduler
+      dockerfile: deploy/cmd.Dockerfile
+      args:
+        CMD_PATH: ./cmd/error_handler/main.go
+    environment:
+      DB_HOST: ${RUNNER_SCHEDULER_POSTGRES_HOST:-runner-scheduler-postgres}
+      DB_PORT: 5432
+      DB_USER: ${RUNNER_SCHEDULER_POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${RUNNER_SCHEDULER_POSTGRES_PASSWORD:-postgres}
+      DB_NAME: ${RUNNER_SCHEDULER_POSTGRES_DB:-runner_scheduler}
+      KAFKA_BROKERS: ${RUNNER_SCHEDULER_KAFKA_BROKERS:-kafka1:9092,kafka2:9092,kafka3:9092}
+      KAFKA_USERNAME: ${RUNNER_SCHEDULER_KAFKA_USERNAME:-}
+      KAFKA_PASSWORD: ${RUNNER_SCHEDULER_KAFKA_PASSWORD:-}
+    depends_on:
+      - runner-scheduler-postgres
+      - kafka1
+      - kafka2
+      - kafka3
+    networks:
+      - default
+      - kafka-net
+    restart: unless-stopped
+
+  runner-scheduler-error-marker:
+    container_name: runner-scheduler-error-marker
+    build:
+      context: ./SAGA/runner_scheduler
+      dockerfile: deploy/cmd.Dockerfile
+      args:
+        CMD_PATH: ./cmd/error_marker/main.go
+    environment:
+      DB_HOST: ${RUNNER_SCHEDULER_POSTGRES_HOST:-runner-scheduler-postgres}
+      DB_PORT: 5432
+      DB_USER: ${RUNNER_SCHEDULER_POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${RUNNER_SCHEDULER_POSTGRES_PASSWORD:-postgres}
+      DB_NAME: ${RUNNER_SCHEDULER_POSTGRES_DB:-runner_scheduler}
+    depends_on:
+      - runner-scheduler-postgres
+    networks:
+      - default
+    restart: unless-stopped
+
+  runner-scheduler-heartbeat-consumer:
+    container_name: runner-scheduler-heartbeat-consumer
+    build:
+      context: ./SAGA/runner_scheduler
+      dockerfile: deploy/cmd.Dockerfile
+      args:
+        CMD_PATH: ./cmd/heartbeat_consumer/main.go
+    environment:
+      DB_HOST: ${RUNNER_SCHEDULER_POSTGRES_HOST:-runner-scheduler-postgres}
+      DB_PORT: 5432
+      DB_USER: ${RUNNER_SCHEDULER_POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${RUNNER_SCHEDULER_POSTGRES_PASSWORD:-postgres}
+      DB_NAME: ${RUNNER_SCHEDULER_POSTGRES_DB:-runner_scheduler}
+      KAFKA_BROKERS: ${RUNNER_SCHEDULER_KAFKA_BROKERS:-kafka1:9092,kafka2:9092,kafka3:9092}
+      KAFKA_USERNAME: ${RUNNER_SCHEDULER_KAFKA_USERNAME:-}
+      KAFKA_PASSWORD: ${RUNNER_SCHEDULER_KAFKA_PASSWORD:-}
+    depends_on:
+      - runner-scheduler-postgres
+      - kafka1
+      - kafka2
+      - kafka3
     networks:
       - default
       - kafka-net

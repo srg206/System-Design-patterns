@@ -36,10 +36,10 @@ func ObtainFrameWorkerNew(url string, skipFrames *int, inferenceClient Inference
 	}
 }
 
-func (w *ObtainFrameWorker) Init() {
+func (w *ObtainFrameWorker) Init() error {
 	cap, err := gocv.OpenVideoCapture(w.url)
 	if err != nil {
-		log.Fatalf("failed to open stream: %v", err)
+		return fmt.Errorf("failed to open stream: %w", err)
 	}
 
 	w.videoCap = cap
@@ -51,6 +51,7 @@ func (w *ObtainFrameWorker) Init() {
 		w.skipFrames = &skipFrames
 	}
 
+	return nil
 }
 
 func (w *ObtainFrameWorker) Run() error {

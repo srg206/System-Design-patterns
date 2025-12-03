@@ -25,16 +25,23 @@ UPDATE worker SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETU
 -- name: DeleteWorker :exec
 DELETE FROM worker WHERE id = $1;
 
--- name: DeleteNodeWorkerByWorkerID :exec
-DELETE FROM node_worker WHERE worker_id = $1;
+-- name: DeleteWorkersByIDs :exec
+DELETE FROM worker WHERE id = ANY($1::int4[]);
+
+-- name: DeleteNodeWorkersByWorkerIDs :exec
+DELETE FROM node_worker WHERE worker_id = ANY($1::int4[]);
 
 -- name: GetOldestWorkersByStatus :many
 SELECT * FROM worker WHERE status = $1 ORDER BY created_at ASC LIMIT $2;
+
+-- name: GetWorkersByStatus :many
+SELECT * FROM worker WHERE status = $1;
 
 -- name: GetLeastLoadedNodes :many
 SELECT n.id as node_id, n.addr, COUNT(nw.worker_id) as worker_count
 FROM node n
 LEFT JOIN node_worker nw ON n.id = nw.node_id
+WHERE n.state IS DISTINCT FROM 'error'
 GROUP BY n.id, n.addr
 ORDER BY worker_count ASC
 LIMIT $1;

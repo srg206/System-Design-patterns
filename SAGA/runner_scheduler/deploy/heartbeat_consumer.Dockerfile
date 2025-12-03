@@ -7,7 +7,7 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o main ./cmd/inbox_consumer/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o main ./cmd/heartbeat_consumer/main.go
 
 FROM alpine:latest
 
